@@ -1,0 +1,232 @@
+import React from 'react';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { eiaData, freightData, physicalIndicators } from '../../data/mockData';
+import CountdownTimer from '../ui/CountdownTimer';
+import InventoryChart from '../charts/InventoryChart';
+import { useTheme } from '../../theme/ThemeContext';
+
+function StatCard({ label, value, unit, weekChange, interpretation, signal, colors }) {
+  const changeColor = weekChange >= 0 ? colors.bullish : colors.bearish;
+  const signalColor =
+    signal === 'BULLISH' ? colors.bullish :
+    signal === 'BEARISH' ? colors.bearish : colors.neutral;
+
+  return (
+    <div className="p-5 border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+      <div className="section-header mb-3">{label}</div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="data-value text-2xl font-bold" style={{ color: colors.textPrimary }}>
+          {typeof value === 'number' ? value.toFixed(1) : value}
+        </span>
+        <span className="text-sm" style={{ color: colors.textMuted }}>{unit}</span>
+      </div>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="data-value text-sm" style={{ color: changeColor }}>
+          WoW: {weekChange >= 0 ? '+' : ''}{weekChange.toFixed(1)}
+        </span>
+        {signal && (
+          <span className="px-2 py-1 text-xs font-semibold rounded-md"
+            style={{
+              backgroundColor: signalColor + '18',
+              color: signalColor,
+              fontSize: '11px',
+            }}>
+            {signal}
+          </span>
+        )}
+      </div>
+      {interpretation && (
+        <div className="text-sm leading-relaxed" style={{ color: colors.textMuted }}>
+          {interpretation}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sparkline({ data, color }) {
+  return (
+    <div style={{ height: 36, width: 120 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={color}
+            strokeWidth={1.5}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export default function PhysicalSection() {
+  const { colors } = useTheme();
+  const { crude, cushing, gasoline, refineryUtil } = eiaData;
+  const { bdti, bcti } = freightData;
+  const { rigCount, floatingStorage } = physicalIndicators;
+
+  return (
+    <div className="px-6 py-8 space-y-14" style={{ maxWidth: 1400, margin: '0 auto' }}>
+      {/* EIA Inventory Panel */}
+      <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+        <div className="flex items-center justify-between mb-5">
+          <div className="section-header" style={{ fontSize: '14px' }}>EIA WEEKLY PETROLEUM STATUS</div>
+          <CountdownTimer targetDate={eiaData.nextRelease} label="NEXT RELEASE" />
+        </div>
+
+        {/* Main crude stats */}
+        <div className="p-5 border mb-5 rounded-lg" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{crude.label}</span>
+            <span className="px-2 py-1 text-xs font-semibold rounded-md"
+              style={{
+                backgroundColor: colors.bullish + '18',
+                color: colors.bullish,
+                fontSize: '11px',
+              }}>
+              {crude.signal}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-4 mb-3">
+            <span className="data-value text-3xl font-bold" style={{ color: colors.textPrimary }}>
+              {crude.value.toFixed(1)}
+            </span>
+            <span className="text-sm" style={{ color: colors.textMuted }}>{crude.unit}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <span style={{ color: colors.textMuted, fontSize: '12px' }}>WoW Change</span>
+              <div className="data-value text-base font-medium" style={{ color: colors.bullish }}>
+                {crude.weekChange.toFixed(1)} mn bbl
+              </div>
+            </div>
+            <div>
+              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Consensus</span>
+              <div className="data-value text-base" style={{ color: colors.textSecondary }}>
+                {crude.consensus.toFixed(1)} mn bbl
+              </div>
+            </div>
+            <div>
+              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Surprise</span>
+              <div className="data-value text-base font-medium" style={{ color: colors.bullish }}>
+                {crude.surprise.toFixed(1)} mn bbl
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sub-cards */}
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label={cushing.label} value={cushing.value} unit={cushing.unit} weekChange={cushing.weekChange} interpretation={cushing.interpretation} colors={colors} />
+          <StatCard label={gasoline.label} value={gasoline.value} unit={gasoline.unit} weekChange={gasoline.weekChange} interpretation={gasoline.interpretation} colors={colors} />
+          <StatCard label={refineryUtil.label} value={refineryUtil.value} unit={refineryUtil.unit} weekChange={refineryUtil.weekChange} interpretation={refineryUtil.interpretation} colors={colors} />
+        </div>
+      </div>
+
+      {/* Inventory History Chart */}
+      <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+        <div className="section-header mb-4" style={{ fontSize: '14px' }}>INVENTORY HISTORY VS 5-YEAR RANGE</div>
+        <InventoryChart />
+      </div>
+
+      {/* Two-column: Freight + Physical Indicators */}
+      <div className="grid grid-cols-2 gap-5">
+        {/* Freight Rates */}
+        <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+          <div className="section-header mb-5" style={{ fontSize: '14px' }}>FREIGHT RATES</div>
+
+          {[bdti, bcti].map((freight) => {
+            const color = freight.weekChange >= 0 ? colors.bullish : colors.bearish;
+            return (
+              <div key={freight.label} className="mb-5 pb-5 border-b" style={{ borderColor: colors.borderSubtle }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{freight.label}</span>
+                  <Sparkline data={freight.sparkline} color={color} />
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <span className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
+                    {freight.value}
+                  </span>
+                  <span className="data-value text-sm" style={{ color }}>
+                    {freight.weekChange >= 0 ? '+' : ''}{freight.weekChange} ({freight.weekChange >= 0 ? '+' : ''}{freight.weekChangePercent.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="text-sm mt-2" style={{ color: colors.textMuted }}>
+                  {freight.interpretation}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Physical Indicators */}
+        <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+          <div className="section-header mb-5" style={{ fontSize: '14px' }}>PHYSICAL INDICATORS</div>
+
+          {/* Rig Count */}
+          <div className="mb-5 pb-5 border-b" style={{ borderColor: colors.borderSubtle }}>
+            <div className="text-sm font-medium mb-2" style={{ color: colors.textPrimary }}>Baker Hughes Rig Count</div>
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div>
+                <span style={{ color: colors.textMuted, fontSize: '12px' }}>Total US</span>
+                <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
+                  {rigCount.totalUS}
+                </div>
+              </div>
+              <div>
+                <span style={{ color: colors.textMuted, fontSize: '12px' }}>Permian</span>
+                <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
+                  {rigCount.permian}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 mb-2">
+              <span className="data-value text-sm" style={{ color: colors.bearish }}>
+                WoW: {rigCount.weekChange}
+              </span>
+              <span className="data-value text-sm" style={{ color: colors.bearish }}>
+                YoY: {rigCount.yearChange} ({rigCount.yearChangePercent}%)
+              </span>
+              <span className="px-2 py-1 text-xs font-semibold rounded-md"
+                style={{ backgroundColor: colors.bearish + '18', color: colors.bearish, fontSize: '11px' }}>
+                {rigCount.signal}
+              </span>
+            </div>
+            <div className="text-sm" style={{ color: colors.textMuted }}>
+              {rigCount.interpretation}
+            </div>
+          </div>
+
+          {/* Floating Storage */}
+          <div>
+            <div className="text-sm font-medium mb-2" style={{ color: colors.textPrimary }}>Floating Storage</div>
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
+                {floatingStorage.value}
+              </span>
+              <span className="text-sm" style={{ color: colors.textMuted }}>{floatingStorage.unit}</span>
+              <span style={{ color: colors.bullish, fontSize: '16px' }}>
+                {floatingStorage.trend === 'falling' ? '↓' : '↑'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="data-value text-sm" style={{ color: colors.bullish }}>
+                WoW: {floatingStorage.weekChange.toFixed(1)}
+              </span>
+              <span className="px-2 py-1 text-xs font-semibold rounded-md"
+                style={{ backgroundColor: colors.bullish + '18', color: colors.bullish, fontSize: '11px' }}>
+                {floatingStorage.signal}
+              </span>
+            </div>
+            <div className="text-sm mt-2" style={{ color: colors.textMuted }}>
+              {floatingStorage.interpretation}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

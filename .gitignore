@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+backend/venv/
+
+# Environment Variables
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Application Data
+paper_state.json
+
+# Build directories
+dist/
+build/
+.next/
+
+# OS generated files
+.DS_Store
+Thumbs.db

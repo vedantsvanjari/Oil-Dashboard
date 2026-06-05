@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: var(--theme-bg-primary);
+  --color-bg-surface: var(--theme-bg-surface);
+  --color-bg-elevated: var(--theme-bg-elevated);
+  --color-border: var(--theme-border);
+  --color-text-primary: var(--theme-text-primary);
+  --color-text-secondary: var(--theme-text-secondary);
+  --color-text-muted: var(--theme-text-muted);
+  --color-bullish: #10b981;
+  --color-bearish: #ef4444;
+  --color-neutral: #f59e0b;
+  --color-cyan: #06b6d4;
+  --color-purple: #a855f7;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ─── Light Theme (default) ─────────────── */
+:root,
+[data-theme="light"] {
+  --theme-bg-primary: #f5f3ee;
+  --theme-bg-surface: #ffffff;
+  --theme-bg-elevated: #f8f7f3;
+  --theme-border: #d8d3c8;
+  --theme-text-primary: #1a1d26;
+  --theme-text-secondary: #5a6178;
+  --theme-text-muted: #8c93a8;
+}
+
+/* ─── Dark Theme ────────────────────────── */
+[data-theme="dark"] {
+  --theme-bg-primary: #0c0f18;
+  --theme-bg-surface: #141826;
+  --theme-bg-elevated: #1c2236;
+  --theme-border: #232940;
+  --theme-text-primary: #e8eaf0;
+  --theme-text-secondary: #a0a8bf;
+  --theme-text-muted: #5c6480;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  scroll-behavior: smooth;
+}
+
+/* ─── Scrollbar styling ───────────────── */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #ccc7bb;
+  border-radius: 4px;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #b5ae9f;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #1c2236;
+  border-radius: 4px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #3a4158;
+}
+
+/* ─── Section header style ────────────── */
+.section-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--theme-text-muted);
+  font-family: var(--font-sans);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--theme-text-primary);
+  font-family: var(--font-sans);
+}
+
+/* ─── Monospace data values ───────────── */
+.data-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Ticker tape animation ───────────── */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-animate {
+  animation: ticker-scroll 30s linear infinite;
+}
+
+/* ─── Recharts customization ──────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--theme-border);
+}
+.recharts-text {
+  fill: var(--theme-text-muted);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── Custom scrollbar for news feed ──── */
+.custom-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+[data-theme="light"] .custom-scroll {
+  scrollbar-color: #ccc7bb transparent;
+}
+[data-theme="dark"] .custom-scroll {
+  scrollbar-color: #1c2236 transparent;
+}
+
+/* ─── Pulse animation for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ─── Glossary collapse animation ─────── */
+.glossary-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+.glossary-content.open {
+  max-height: 300px;
+}
+
+/* ─── Theme transition for cards ──────── */
+.theme-card {
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ─── Light mode card shadows ─────────── */
+[data-theme="light"] .theme-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+}
+[data-theme="light"] .theme-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* ─── Dark mode card shadows ──────────── */
+[data-theme="dark"] .theme-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 2px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+[data-theme="dark"] .theme-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
