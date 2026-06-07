@@ -9,7 +9,7 @@ function StatCard({ label, value, unit, weekChange, interpretation, signal, colo
   const changeColor = weekChange >= 0 ? colors.bullish : colors.bearish;
   const signalColor =
     signal === 'BULLISH' ? colors.bullish :
-    signal === 'BEARISH' ? colors.bearish : colors.neutral;
+      signal === 'BEARISH' ? colors.bearish : colors.neutral;
 
   return (
     <div className="p-5 border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
@@ -69,7 +69,7 @@ export default function PhysicalSection() {
   const { rigCount, floatingStorage } = physicalIndicators;
 
   return (
-    <div className="px-6 py-8 space-y-14" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
       {/* EIA Inventory Panel */}
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="flex items-center justify-between mb-5">
@@ -133,7 +133,7 @@ export default function PhysicalSection() {
       </div>
 
       {/* Two-column: Freight + Physical Indicators */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 gap-16">
         {/* Freight Rates */}
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-5" style={{ fontSize: '14px' }}>FREIGHT RATES</div>

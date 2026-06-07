@@ -1,5 +1,5 @@
 import React from 'react';
-import { tickerItems } from '../../data/mockData';
+import useLivePriceStore from '../../stores/livePriceStore';
 import { useTheme } from '../../theme/ThemeContext';
 
 function TickerItem({ item, colors }) {
@@ -22,6 +22,7 @@ function TickerItem({ item, colors }) {
 
 export default function TickerTape() {
   const { colors } = useTheme();
+  const { tickerItems } = useLivePriceStore();
   const items = [...tickerItems, ...tickerItems];
 
   return (

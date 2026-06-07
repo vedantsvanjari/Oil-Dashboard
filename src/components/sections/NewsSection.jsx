@@ -36,7 +36,7 @@ export default function NewsSection() {
 
   return (
     <div className="px-6 py-8" style={{ maxWidth: 1400, margin: '0 auto' }}>
-      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 380px' }}>
+      <div className="grid gap-16" style={{ gridTemplateColumns: '1fr 380px' }}>
         {/* Left: News Feed */}
         <div className="border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="p-5 border-b" style={{ borderColor: colors.borderSubtle }}>

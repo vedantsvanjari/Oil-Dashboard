@@ -9,18 +9,18 @@ export default function SpreadsSection() {
   const { colors } = useTheme();
 
   return (
-    <div className="px-6 py-8 space-y-14" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
       <div className="section-header" style={{ fontSize: '14px' }}>CALENDAR SPREADS</div>
 
       {/* Top row: 4 calendar spread cards */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-4 gap-16">
         {spreads.map((s) => (
           <SpreadCard key={s.id} spread={s} />
         ))}
       </div>
 
       {/* Second row: WTI-Brent + Crack Spread */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 gap-16">
         <div className="p-5 border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{wtiBrentSpread.name}</span>

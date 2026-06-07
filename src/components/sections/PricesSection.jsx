@@ -1,5 +1,5 @@
 import React from 'react';
-import { instruments } from '../../data/mockData';
+import useLivePriceStore from '../../stores/livePriceStore';
 import useDashboardStore from '../../stores/dashboardStore';
 import PriceCard from '../ui/PriceCard';
 import PriceChart from '../charts/PriceChart';
@@ -8,13 +8,14 @@ import { useTheme } from '../../theme/ThemeContext';
 export default function PricesSection() {
   const { selectedInstrument, setSelectedInstrument } = useDashboardStore();
   const { colors } = useTheme();
+  const { instruments } = useLivePriceStore();
 
   return (
-    <div className="px-6 py-8 space-y-14" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
       <div className="section-header" style={{ fontSize: '14px' }}>INSTRUMENT OVERVIEW</div>
 
       {/* Instrument cards grid */}
-      <div className="grid grid-cols-5 gap-5">
+      <div className="grid grid-cols-5 gap-16">
         {instruments.map((inst) => (
           <PriceCard
             key={inst.id}

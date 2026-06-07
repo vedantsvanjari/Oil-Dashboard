@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, LineChart, BarChart,
 } from 'recharts';
 import useDashboardStore from '../../stores/dashboardStore';
-import { instruments } from '../../data/mockData';
+import useLivePriceStore from '../../stores/livePriceStore';
 import { useTheme } from '../../theme/ThemeContext';
 
 function filterByRange(data, range) {
@@ -42,6 +42,7 @@ export default function PriceChart() {
   const {
     selectedInstrument, priceTimeRange, setPriceTimeRange, priceIndicators, toggleIndicator,
   } = useDashboardStore();
+  const { instruments } = useLivePriceStore();
 
   const instrument = instruments.find((i) => i.id === selectedInstrument) || instruments[0];
 

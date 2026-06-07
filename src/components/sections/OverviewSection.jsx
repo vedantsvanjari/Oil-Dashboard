@@ -19,6 +19,7 @@ import {
   productCorrelationMatrix,
 } from '../../data/mockData';
 import useDashboardStore from '../../stores/dashboardStore';
+import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -117,9 +118,9 @@ function MiniHeatmap({ title, labels, matrix, colors, isDark }) {
           <span className="data-value" style={{ color: colors.textPrimary }}>{hover.val.toFixed(2)}</span>
           {' — '}
           {Math.abs(hover.val) >= 0.8 ? 'Very Strong' :
-           Math.abs(hover.val) >= 0.6 ? 'Strong' :
-           Math.abs(hover.val) >= 0.4 ? 'Moderate' :
-           Math.abs(hover.val) >= 0.2 ? 'Weak' : 'Negligible'}
+            Math.abs(hover.val) >= 0.6 ? 'Strong' :
+              Math.abs(hover.val) >= 0.4 ? 'Moderate' :
+                Math.abs(hover.val) >= 0.2 ? 'Weak' : 'Negligible'}
           {hover.val >= 0 ? ' Positive' : ' Inverse'}
         </div>
       )}
@@ -140,9 +141,13 @@ function MiniHeatmap({ title, labels, matrix, colors, isDark }) {
 export default function OverviewSection() {
   const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals } = useDashboardStore();
   const { theme, colors } = useTheme();
+  const { instruments } = useLivePriceStore();
   const isDark = theme === 'dark';
   const [expandedSignal, setExpandedSignal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+
+  const brent = instruments.find(i => i.id === 'brent');
+  const wti = instruments.find(i => i.id === 'wti');
 
   const m1m12 = spreads[3];
   const m1m12Chart = m1m12.series.slice(-66);
@@ -169,7 +174,7 @@ export default function OverviewSection() {
 
   const sentimentColor =
     computedScore >= 62 ? colors.bullish :
-    computedScore >= 45 ? colors.neutral : colors.bearish;
+      computedScore >= 45 ? colors.neutral : colors.bearish;
 
   // Generate dynamic market behavior text based on active signals
   const marketBehavior = useMemo(() => {
@@ -223,15 +228,15 @@ export default function OverviewSection() {
   }, [sentimentSignals, computedScore]);
 
   return (
-    <div className="px-6 py-8 space-y-14" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
 
       {/* ═══════════ ROW 1: Key Benchmarks ═══════════ */}
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="section-header mb-4">KEY BENCHMARKS</div>
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-5 gap-16">
           {[
-            { label: 'Brent', val: '82.40', chg: '+0.32', pct: '+0.39%', unit: '$/bbl' },
-            { label: 'WTI', val: '78.15', chg: '+0.28', pct: '+0.36%', unit: '$/bbl' },
+            { label: 'Brent', val: brent ? brent.price.toFixed(2) : '82.40', chg: brent ? `${brent.change > 0 ? '+' : ''}${brent.change.toFixed(2)}` : '+0.32', pct: brent ? `${brent.changePercent > 0 ? '+' : ''}${brent.changePercent.toFixed(2)}%` : '+0.39%', unit: '$/bbl' },
+            { label: 'WTI', val: wti ? wti.price.toFixed(2) : '78.15', chg: wti ? `${wti.change > 0 ? '+' : ''}${wti.change.toFixed(2)}` : '+0.28', pct: wti ? `${wti.changePercent > 0 ? '+' : ''}${wti.changePercent.toFixed(2)}%` : '+0.36%', unit: '$/bbl' },
             { label: 'M1-M12', val: '+2.80', chg: '+0.08', pct: '', unit: '$/bbl', extraLabel: 'BACKWD' },
             { label: 'Crack 3:2:1', val: '18.40', chg: '+0.60', pct: '+3.37%', unit: '$/bbl' },
             { label: 'DXY', val: '104.20', chg: '-0.18', pct: '-0.17%', unit: '' },
@@ -259,7 +264,7 @@ export default function OverviewSection() {
           })}
         </div>
         {/* Quick fundamental row */}
-        <div className="grid grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-4 gap-16 mt-4">
           {[
             { label: 'US Crude', val: '-2.4', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
             { label: 'Cushing', val: '-0.8', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
@@ -281,7 +286,7 @@ export default function OverviewSection() {
       </div>
 
       {/* ═══════════ ROW 1b: Regime + OPEC side-by-side ═══════════ */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-10">
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-4">ACTIVE REGIME</div>
           <div className="px-4 py-3 rounded-lg border mb-4" style={{ backgroundColor: colors.bullish + '12', borderColor: colors.bullish }}>
@@ -403,7 +408,7 @@ export default function OverviewSection() {
         )}
 
         {/* Main sentiment display */}
-        <div className="grid gap-6" style={{ gridTemplateColumns: '240px 1fr' }}>
+        <div className="grid gap-16" style={{ gridTemplateColumns: '240px 1fr' }}>
 
           {/* Left: Big gauge */}
           <div className="flex flex-col items-center justify-center">
@@ -589,7 +594,7 @@ export default function OverviewSection() {
       </div>
 
       {/* ═══════════ ROW 3b: EIA + Risks/Catalysts side-by-side ═══════════ */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-10">
         {/* EIA compact */}
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="flex items-center justify-between mb-4">
@@ -644,7 +649,7 @@ export default function OverviewSection() {
       </div>
 
       {/* ═══════════ ROW 4: Correlations + Outlook ═══════════ */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+      <div className="grid gap-16" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <MiniHeatmap title="SPREAD CORRELATION (30D)" labels={spreadCorrelationLabels} matrix={spreadCorrelationMatrix} colors={colors} isDark={isDark} />
         </div>
