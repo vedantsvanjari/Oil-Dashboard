@@ -6,3 +6,4 @@ python-dotenv
 alembic
 yfinance
 pandas
+feedparser

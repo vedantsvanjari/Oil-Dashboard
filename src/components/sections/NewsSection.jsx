@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { newsItems, opecData, scheduledReleases } from '../../data/mockData';
+import { opecData, scheduledReleases } from '../../data/mockData';
 import useDashboardStore from '../../stores/dashboardStore';
+import useNewsStore from '../../stores/newsStore';
 import NewsItem from '../ui/NewsItem';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
@@ -10,7 +11,12 @@ const categories = ['All', 'OPEC', 'Geopolitics', 'Inventories', 'Tankers', 'Ref
 
 export default function NewsSection() {
   const { newsCategory, setNewsCategory, newsSearch, setNewsSearch } = useDashboardStore();
+  const { newsItems, isLoadingNews, newsError, fetchNews } = useNewsStore();
   const { colors } = useTheme();
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   const filteredNews = useMemo(() => {
     let items = [...newsItems];
@@ -32,7 +38,7 @@ export default function NewsSection() {
       );
     }
     return items;
-  }, [newsCategory, newsSearch]);
+  }, [newsItems, newsCategory, newsSearch]);
 
   return (
     <div className="px-6 py-8" style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -77,10 +83,20 @@ export default function NewsSection() {
 
           {/* News list */}
           <div className="custom-scroll" style={{ maxHeight: 800 }}>
-            {filteredNews.map((item) => (
+            {isLoadingNews && (
+              <div className="p-8 text-center text-sm" style={{ color: colors.textPrimary }}>
+                Loading news...
+              </div>
+            )}
+            {newsError && !isLoadingNews && (
+              <div className="p-8 text-center text-sm" style={{ color: colors.bearish }}>
+                {newsError}
+              </div>
+            )}
+            {!isLoadingNews && !newsError && filteredNews.map((item) => (
               <NewsItem key={item.id} item={item} />
             ))}
-            {filteredNews.length === 0 && (
+            {!isLoadingNews && !newsError && filteredNews.length === 0 && (
               <div className="p-8 text-center text-sm" style={{ color: colors.textMuted }}>
                 No news items match your filters.
               </div>
