@@ -1,7 +1,9 @@
 import yfinance as yf
 from datetime import datetime, timezone
+from sqlalchemy.orm import Session
+from app.models.prices import Price
 
-def fetch_live_prices():
+def fetch_live_prices(db: Session = None):
     tickers_map = {
         "brent": "BZ=F",
         "wti": "CL=F",
@@ -21,7 +23,7 @@ def fetch_live_prices():
             print(f"hist.empty: {hist.empty}")
             
             if not hist.empty:
-                latest_close = float(hist['Close'].iloc[-1])
+                latest_close = round(float(hist['Close'].iloc[-1]), 2)
                 print(f"latest close price: {latest_close}")
                 result[key] = latest_close
             else:
@@ -33,4 +35,21 @@ def fetch_live_prices():
             result[key] = 0.0
             
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
+    
+    if db:
+        try:
+            dt = datetime.fromisoformat(result["timestamp"])
+            for key in ["brent", "wti", "gasoline", "heating_oil"]:
+                if key in result:
+                    new_price = Price(
+                        symbol=key,
+                        price=result[key],
+                        timestamp=dt
+                    )
+                    db.add(new_price)
+            db.commit()
+        except Exception as e:
+            print(f"Error saving to DB: {e}")
+            db.rollback()
+
     return result
