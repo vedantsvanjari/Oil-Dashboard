@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   ComposedChart, Area, Line, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, LineChart, BarChart,
@@ -42,9 +42,13 @@ export default function PriceChart() {
   const {
     selectedInstrument, priceTimeRange, setPriceTimeRange, priceIndicators, toggleIndicator,
   } = useDashboardStore();
-  const { instruments } = useLivePriceStore();
+  const { instruments, isLoadingHistory, historyError, fetchHistoricalData } = useLivePriceStore();
 
   const instrument = instruments.find((i) => i.id === selectedInstrument) || instruments[0];
+
+  useEffect(() => {
+    fetchHistoricalData(selectedInstrument);
+  }, [selectedInstrument, fetchHistoricalData]);
 
   const chartData = useMemo(() => {
     if (priceTimeRange === '1D') {
@@ -123,7 +127,17 @@ export default function PriceChart() {
         {/* Main chart area */}
         <div className="flex-1" style={{ minWidth: 0 }}>
           {/* Price chart */}
-          <div style={{ height: 460 }}>
+          <div style={{ height: 460, position: 'relative' }}>
+            {isLoadingHistory && (
+              <div className="absolute inset-0 flex items-center justify-center z-10" style={{ backgroundColor: colors.cardBg, opacity: 0.8 }}>
+                <span style={{ color: colors.textPrimary, fontSize: '14px' }}>Loading historical data...</span>
+              </div>
+            )}
+            {historyError && !isLoadingHistory && (
+              <div className="absolute inset-0 flex items-center justify-center z-10" style={{ backgroundColor: colors.cardBg, opacity: 0.8 }}>
+                <span style={{ color: colors.bearish, fontSize: '14px' }}>{historyError}</span>
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.gridLine} />

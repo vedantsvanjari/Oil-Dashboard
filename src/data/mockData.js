@@ -63,7 +63,7 @@ function generateIntradayData(basePrice, seed) {
   return data;
 }
 
-function computeIndicators(priceData) {
+export function computeIndicators(priceData) {
   const closes = priceData.map((d) => d.close);
   const result = priceData.map((d, i) => {
     const entry = { ...d };
@@ -174,7 +174,7 @@ export const instruments = [
     openInterest: 312100,
     unit: '$/bbl',
     decimals: 2,
-    dailyData: brentDaily,
+    dailyData: [],
     intradayData: brentIntraday,
   },
   {
@@ -190,7 +190,7 @@ export const instruments = [
     openInterest: 480200,
     unit: '$/bbl',
     decimals: 2,
-    dailyData: wtiDaily,
+    dailyData: [],
     intradayData: wtiIntraday,
   },
   {
@@ -206,7 +206,7 @@ export const instruments = [
     openInterest: 210400,
     unit: '$/mt',
     decimals: 2,
-    dailyData: gasoilDaily,
+    dailyData: [],
     intradayData: gasoilIntraday,
   },
   {
@@ -222,7 +222,7 @@ export const instruments = [
     openInterest: 140200,
     unit: '$/gal',
     decimals: 4,
-    dailyData: heatingOilDaily,
+    dailyData: [],
     intradayData: heatingOilIntraday,
   },
   {
@@ -238,7 +238,7 @@ export const instruments = [
     openInterest: 98200,
     unit: '$/gal',
     decimals: 4,
-    dailyData: rbobDaily,
+    dailyData: [],
     intradayData: rbobIntraday,
   },
 ];
