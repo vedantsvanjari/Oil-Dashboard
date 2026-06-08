@@ -53,3 +53,31 @@ def fetch_live_prices(db: Session = None):
             db.rollback()
 
     return result
+
+def fetch_historical_prices(symbol: str):
+    tickers_map = {
+        "brent": "BZ=F",
+        "wti": "CL=F",
+        "gasoline": "RB=F",
+        "heating_oil": "HO=F"
+    }
+    
+    if symbol not in tickers_map:
+        return None
+        
+    ticker_symbol = tickers_map[symbol]
+    
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        hist = ticker.history(period="5y")
+        
+        result = []
+        for date, row in hist.iterrows():
+            result.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "close": round(float(row['Close']), 2)
+            })
+        return result
+    except Exception as e:
+        print(f"Error fetching historical data for {symbol}: {e}")
+        return []
