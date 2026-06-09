@@ -269,7 +269,6 @@ export default function OverviewSection() {
           {[
             { label: 'US Crude', val: '-2.4', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
             { label: 'Cushing', val: '-0.8', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
-            { label: 'Refinery Util', val: '91.2%', unit: '', badge: '+0.4pp', badgeColor: colors.bullish },
             { label: 'OPEC Compl.', val: '99.1%', unit: '', badge: 'HIGH', badgeColor: colors.bullish },
           ].map((f) => (
             <div key={f.label} className="flex items-center justify-between p-3 border rounded-lg"

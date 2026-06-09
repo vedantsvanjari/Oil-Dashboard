@@ -3,8 +3,10 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { freightData, physicalIndicators } from '../../data/mockData';
 import CountdownTimer from '../ui/CountdownTimer';
 import InventoryChart from '../charts/InventoryChart';
+import RefineryChart from '../charts/RefineryChart';
 import { useTheme } from '../../theme/ThemeContext';
 import { useInventoryData } from '../../hooks/useInventoryData';
+import { useRefineryData } from '../../hooks/useRefineryData';
 import { getNextEIARelease } from '../../utils/dates';
 
 function StatCard({ label, value, unit, weekChange, interpretation, signal, colors }) {
@@ -70,6 +72,7 @@ export default function PhysicalSection() {
   const { rigCount, floatingStorage } = physicalIndicators;
   
   const { latestData, historyData, loading, error } = useInventoryData();
+  const refinery = useRefineryData();
 
   return (
     <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -168,6 +171,64 @@ export default function PhysicalSection() {
         <div className="section-header mb-4" style={{ fontSize: '14px' }}>INVENTORY HISTORY VS 5-YEAR RANGE</div>
         {!loading && !error && historyData && (
           <InventoryChart historyData={historyData} />
+        )}
+      </div>
+
+      {/* Refinery Operations Panel */}
+      <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+        <div className="section-header mb-5" style={{ fontSize: '14px' }}>U.S. REFINERY OPERATIONS</div>
+
+        {refinery.loading ? (
+          <div className="flex flex-col items-center justify-center p-10" style={{ color: colors.textMuted }}>
+            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: colors.neutral, borderTopColor: 'transparent' }}></div>
+            <p>Loading EIA refinery data...</p>
+          </div>
+        ) : refinery.error ? (
+          <div className="p-5 border rounded-lg text-center" style={{ backgroundColor: colors.bearish + '11', borderColor: colors.bearish }}>
+            <p style={{ color: colors.bearish }}>Failed to load refinery data: {refinery.error}</p>
+          </div>
+        ) : refinery.latestData && (
+          <>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <StatCard 
+                label="Refinery Utilization" 
+                value={refinery.latestData.refinery_utilization.value} 
+                unit="%" 
+                weekChange={refinery.latestData.refinery_utilization.weekChange} 
+                signal={refinery.latestData.refinery_utilization.weekChange > 0 ? 'BULLISH' : 'BEARISH'}
+                colors={colors} 
+              />
+              <StatCard 
+                label="Gross Inputs" 
+                value={refinery.latestData.gross_inputs.value / 1000} 
+                unit="mn bpd" 
+                weekChange={refinery.latestData.gross_inputs.weekChange / 1000} 
+                signal={refinery.latestData.gross_inputs.weekChange > 0 ? 'BULLISH' : 'BEARISH'}
+                colors={colors} 
+              />
+              <StatCard 
+                label="Gasoline Production" 
+                value={refinery.latestData.gasoline_production.value / 1000} 
+                unit="mn bpd" 
+                weekChange={refinery.latestData.gasoline_production.weekChange / 1000} 
+                signal={refinery.latestData.gasoline_production.weekChange > 0 ? 'BULLISH' : 'BEARISH'}
+                colors={colors} 
+              />
+              <StatCard 
+                label="Distillate Production" 
+                value={refinery.latestData.distillate_production.value / 1000} 
+                unit="mn bpd" 
+                weekChange={refinery.latestData.distillate_production.weekChange / 1000} 
+                signal={refinery.latestData.distillate_production.weekChange > 0 ? 'BULLISH' : 'BEARISH'}
+                colors={colors} 
+              />
+            </div>
+
+            <div className="section-header mb-4" style={{ fontSize: '14px' }}>REFINERY HISTORY VS 5-YEAR RANGE</div>
+            {refinery.historyData && (
+              <RefineryChart historyData={refinery.historyData} />
+            )}
+          </>
         )}
       </div>
 
