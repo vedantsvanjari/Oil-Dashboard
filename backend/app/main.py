@@ -63,3 +63,9 @@ def debug_eia_metadata():
 @app.get("/api/debug/inventory-db")
 def debug_inventory_db(db: Session = Depends(get_db)):
     return db.query(Inventory).order_by(Inventory.date.desc()).limit(20).all()
+
+@app.post("/api/admin/cleanup-inventory")
+def cleanup_inventory(db: Session = Depends(get_db)):
+    deleted_count = db.query(Inventory).filter(Inventory.quantity == 0).delete()
+    db.commit()
+    return {"deleted_rows": deleted_count}
