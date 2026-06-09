@@ -2,10 +2,11 @@ import os
 import requests
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from app.api import prices, news, inventories
+from app.api import prices, news, inventories, refineries
 import app.models  # Ensures all SQLAlchemy models are imported
 from app.models.base import Base
 from app.models.inventories import Inventory
+from app.models.refineries import RefineryData
 from app.database.connection import engine, get_db
 
 # Create tables if they do not exist
@@ -16,6 +17,7 @@ app = FastAPI()
 app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
 app.include_router(news.router, prefix="/api/news", tags=["news"])
 app.include_router(inventories.router, prefix="/api/inventories", tags=["inventories"])
+app.include_router(refineries.router, prefix="/api/refineries", tags=["refineries"])
 
 @app.get("/health")
 def health_check():
