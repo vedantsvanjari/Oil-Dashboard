@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format, differenceInSeconds } from 'date-fns';
-import { eiaData } from '../../data/mockData';
+import { getNextEIARelease } from '../../utils/dates';
 import { useTheme } from '../../theme/ThemeContext';
 
 export default function StatusBar() {
@@ -12,7 +12,7 @@ export default function StatusBar() {
     return () => clearInterval(timer);
   }, []);
 
-  const eiaRelease = eiaData.nextRelease;
+  const eiaRelease = getNextEIARelease();
   const diffSec = Math.max(0, differenceInSeconds(eiaRelease, now));
   const days = Math.floor(diffSec / 86400);
   const hours = Math.floor((diffSec % 86400) / 3600);

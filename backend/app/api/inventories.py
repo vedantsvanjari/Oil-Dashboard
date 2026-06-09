@@ -5,7 +5,7 @@ from app.services.inventory_service import fetch_eia_inventories, fetch_historic
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 def get_inventories(db: Session = Depends(get_db)):
     return fetch_eia_inventories(db)
 

@@ -4,7 +4,6 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import useDashboardStore from '../../stores/dashboardStore';
-import { eiaData } from '../../data/mockData';
 import { useTheme } from '../../theme/ThemeContext';
 
 function CustomTooltip({ active, payload, label, colors }) {
@@ -18,7 +17,7 @@ function CustomTooltip({ active, payload, label, colors }) {
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || colors.neutral }} />
           <span style={{ color: colors.textMuted, fontSize: '10px' }}>{p.name}:</span>
           <span className="data-value" style={{ color: colors.textPrimary, fontSize: '10px' }}>
-            {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+            {typeof p.value === 'number' ? (p.value / 1000).toFixed(1) : p.value} mn bbl
           </span>
         </div>
       ))}
@@ -43,23 +42,24 @@ function CustomBar(props) {
   );
 }
 
-export default function InventoryChart() {
+export default function InventoryChart({ historyData }) {
   const { colors } = useTheme();
   const { inventoryTab, setInventoryTab } = useDashboardStore();
 
-  const tabData = {
-    crude: eiaData.crude.history,
-    cushing: eiaData.cushing.history,
-    gasoline: eiaData.gasoline.history,
-  };
-
   const tabs = [
     { id: 'crude', label: 'Crude' },
-    { id: 'cushing', label: 'Cushing' },
     { id: 'gasoline', label: 'Gasoline' },
+    { id: 'distillate', label: 'Distillate' },
+    { id: 'spr', label: 'SPR' },
   ];
 
-  const data = useMemo(() => tabData[inventoryTab] || [], [inventoryTab]);
+  // If the store's tab doesn't match our new backend tabs, reset it to crude
+  const safeTab = tabs.some(t => t.id === inventoryTab) ? inventoryTab : 'crude';
+
+  const data = useMemo(() => {
+    if (!historyData || !historyData[safeTab]) return [];
+    return historyData[safeTab];
+  }, [historyData, safeTab]);
 
   return (
     <div>
@@ -70,8 +70,8 @@ export default function InventoryChart() {
             onClick={() => setInventoryTab(t.id)}
             className="px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-150"
             style={{
-              backgroundColor: inventoryTab === t.id ? colors.activeTabBg : 'transparent',
-              color: inventoryTab === t.id ? colors.textPrimary : colors.textMuted,
+              backgroundColor: safeTab === t.id ? colors.activeTabBg : 'transparent',
+              color: safeTab === t.id ? colors.textPrimary : colors.textMuted,
             }}
           >
             {t.label}
@@ -93,6 +93,7 @@ export default function InventoryChart() {
             <YAxis
               orientation="right"
               domain={['auto', 'auto']}
+              tickFormatter={(val) => (val / 1000).toFixed(0)}
               tick={{ fill: colors.axisText, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}
               tickLine={false}
               axisLine={{ stroke: colors.gridLine }}
@@ -141,3 +142,4 @@ export default function InventoryChart() {
     </div>
   );
 }
+

@@ -1,9 +1,11 @@
 import React from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import { eiaData, freightData, physicalIndicators } from '../../data/mockData';
+import { freightData, physicalIndicators } from '../../data/mockData';
 import CountdownTimer from '../ui/CountdownTimer';
 import InventoryChart from '../charts/InventoryChart';
 import { useTheme } from '../../theme/ThemeContext';
+import { useInventoryData } from '../../hooks/useInventoryData';
+import { getNextEIARelease } from '../../utils/dates';
 
 function StatCard({ label, value, unit, weekChange, interpretation, signal, colors }) {
   const changeColor = weekChange >= 0 ? colors.bullish : colors.bearish;
@@ -64,9 +66,10 @@ function Sparkline({ data, color }) {
 
 export default function PhysicalSection() {
   const { colors } = useTheme();
-  const { crude, cushing, gasoline, refineryUtil } = eiaData;
   const { bdti, bcti } = freightData;
   const { rigCount, floatingStorage } = physicalIndicators;
+  
+  const { latestData, historyData, loading, error } = useInventoryData();
 
   return (
     <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -74,62 +77,98 @@ export default function PhysicalSection() {
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="flex items-center justify-between mb-5">
           <div className="section-header" style={{ fontSize: '14px' }}>EIA WEEKLY PETROLEUM STATUS</div>
-          <CountdownTimer targetDate={eiaData.nextRelease} label="NEXT RELEASE" />
+          <CountdownTimer targetDate={getNextEIARelease()} label="NEXT RELEASE" />
         </div>
 
-        {/* Main crude stats */}
-        <div className="p-5 border mb-5 rounded-lg" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{crude.label}</span>
-            <span className="px-2 py-1 text-xs font-semibold rounded-md"
-              style={{
-                backgroundColor: colors.bullish + '18',
-                color: colors.bullish,
-                fontSize: '11px',
-              }}>
-              {crude.signal}
-            </span>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-10" style={{ color: colors.textMuted }}>
+            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: colors.neutral, borderTopColor: 'transparent' }}></div>
+            <p>Loading EIA data...</p>
           </div>
-          <div className="flex items-baseline gap-4 mb-3">
-            <span className="data-value text-3xl font-bold" style={{ color: colors.textPrimary }}>
-              {crude.value.toFixed(1)}
-            </span>
-            <span className="text-sm" style={{ color: colors.textMuted }}>{crude.unit}</span>
+        ) : error ? (
+          <div className="p-5 border rounded-lg text-center" style={{ backgroundColor: colors.bearish + '11', borderColor: colors.bearish }}>
+            <p style={{ color: colors.bearish }}>Failed to load inventory data: {error}</p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>WoW Change</span>
-              <div className="data-value text-base font-medium" style={{ color: colors.bullish }}>
-                {crude.weekChange.toFixed(1)} mn bbl
+        ) : latestData && (
+          <>
+            {/* Main crude stats */}
+            <div className="p-5 border mb-5 rounded-lg" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>US Crude Stocks</span>
+                <span className="px-2 py-1 text-xs font-semibold rounded-md"
+                  style={{
+                    backgroundColor: (latestData.crude.weekChange < 0 ? colors.bullish : colors.bearish) + '18',
+                    color: latestData.crude.weekChange < 0 ? colors.bullish : colors.bearish,
+                    fontSize: '11px',
+                  }}>
+                  {latestData.crude.weekChange < 0 ? 'BULLISH (DRAW)' : 'BEARISH (BUILD)'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-4 mb-3">
+                <span className="data-value text-3xl font-bold" style={{ color: colors.textPrimary }}>
+                  {(latestData.crude.value / 1000).toFixed(1)}
+                </span>
+                <span className="text-sm" style={{ color: colors.textMuted }}>mn bbl</span>
+              </div>
+              <div className="grid grid-cols-3 gap-6">
+                <div>
+                  <span style={{ color: colors.textMuted, fontSize: '12px' }}>WoW Change</span>
+                  <div className="data-value text-base font-medium" style={{ color: latestData.crude.weekChange < 0 ? colors.bullish : colors.bearish }}>
+                    {latestData.crude.weekChange > 0 ? '+' : ''}{(latestData.crude.weekChange / 1000).toFixed(1)} mn bbl
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: colors.textMuted, fontSize: '12px' }}>Consensus</span>
+                  <div className="data-value text-base" style={{ color: colors.textSecondary }}>
+                    -1.8 mn bbl
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: colors.textMuted, fontSize: '12px' }}>Surprise</span>
+                  <div className="data-value text-base font-medium" style={{ color: (latestData.crude.weekChange / 1000 + 1.8) < 0 ? colors.bullish : colors.bearish }}>
+                    {(((latestData.crude.weekChange / 1000) + 1.8) > 0 ? '+' : '') + ((latestData.crude.weekChange / 1000) + 1.8).toFixed(1)} mn bbl
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Consensus</span>
-              <div className="data-value text-base" style={{ color: colors.textSecondary }}>
-                {crude.consensus.toFixed(1)} mn bbl
-              </div>
-            </div>
-            <div>
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Surprise</span>
-              <div className="data-value text-base font-medium" style={{ color: colors.bullish }}>
-                {crude.surprise.toFixed(1)} mn bbl
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Sub-cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard label={cushing.label} value={cushing.value} unit={cushing.unit} weekChange={cushing.weekChange} interpretation={cushing.interpretation} colors={colors} />
-          <StatCard label={gasoline.label} value={gasoline.value} unit={gasoline.unit} weekChange={gasoline.weekChange} interpretation={gasoline.interpretation} colors={colors} />
-          <StatCard label={refineryUtil.label} value={refineryUtil.value} unit={refineryUtil.unit} weekChange={refineryUtil.weekChange} interpretation={refineryUtil.interpretation} colors={colors} />
-        </div>
+            {/* Sub-cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <StatCard 
+                label="Gasoline Stocks" 
+                value={latestData.gasoline.value / 1000} 
+                unit="mn bbl" 
+                weekChange={latestData.gasoline.weekChange / 1000} 
+                interpretation="Gasoline inventories tracking real-time demand." 
+                colors={colors} 
+              />
+              <StatCard 
+                label="Distillate Stocks" 
+                value={latestData.distillate.value / 1000} 
+                unit="mn bbl" 
+                weekChange={latestData.distillate.weekChange / 1000} 
+                interpretation="Distillate levels reflect industrial and freight activity." 
+                colors={colors} 
+              />
+              <StatCard 
+                label="SPR" 
+                value={latestData.spr.value / 1000} 
+                unit="mn bbl" 
+                weekChange={latestData.spr.weekChange / 1000} 
+                interpretation="Strategic Petroleum Reserve inventory levels." 
+                colors={colors} 
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Inventory History Chart */}
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="section-header mb-4" style={{ fontSize: '14px' }}>INVENTORY HISTORY VS 5-YEAR RANGE</div>
-        <InventoryChart />
+        {!loading && !error && historyData && (
+          <InventoryChart historyData={historyData} />
+        )}
       </div>
 
       {/* Two-column: Freight + Physical Indicators */}
@@ -230,3 +269,4 @@ export default function PhysicalSection() {
     </div>
   );
 }
+

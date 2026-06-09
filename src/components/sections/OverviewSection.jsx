@@ -9,7 +9,6 @@ import {
   spreads,
   crackSpread,
   wtiBrentSpread,
-  eiaData,
   opecData,
   regimeData,
   sentimentAnalysis,
@@ -17,7 +16,9 @@ import {
   spreadCorrelationMatrix,
   productCorrelationLabels,
   productCorrelationMatrix,
+  scheduledReleases,
 } from '../../data/mockData';
+import { getNextEIARelease } from '../../utils/dates';
 import useDashboardStore from '../../stores/dashboardStore';
 import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
@@ -599,7 +600,7 @@ export default function OverviewSection() {
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="flex items-center justify-between mb-4">
             <div className="section-header">EIA WEEKLY</div>
-            <CountdownTimer targetDate={eiaData.nextRelease} label="NEXT" />
+            <CountdownTimer targetDate={getNextEIARelease()} label="NEXT" />
           </div>
           <div className="p-4 border mb-4 rounded-lg" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
             <div className="flex items-center justify-between mb-2">

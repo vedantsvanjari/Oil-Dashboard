@@ -1,4 +1,5 @@
-import { addDays, subDays, subHours, subMinutes, format, nextWednesday, setHours, setMinutes } from 'date-fns';
+import { addDays, subDays, subHours, subMinutes, format, setHours, setMinutes } from 'date-fns';
+import { getNextEIARelease } from '../utils/dates';
 
 // ─── HELPERS ───────────────────────────────────────────────
 function seededRandom(seed) {
@@ -334,76 +335,7 @@ export const crackSpread = {
   series: crackSeries,
 };
 
-// ─── EIA / PHYSICAL ────────────────────────────────────────
-function getNextEIARelease() {
-  const now = new Date();
-  let wed = nextWednesday(now);
-  wed = setHours(wed, 10);
-  wed = setMinutes(wed, 30);
-  if (wed.getTime() < now.getTime()) {
-    wed = nextWednesday(addDays(wed, 1));
-    wed = setHours(wed, 10);
-    wed = setMinutes(wed, 30);
-  }
-  return wed;
-}
-
-function generateInventoryHistory(baseValue, weeks, vol, seed) {
-  const rng = seededRandom(seed);
-  const data = [];
-  let value = baseValue;
-  const now = new Date();
-  for (let i = weeks - 1; i >= 0; i--) {
-    const date = subDays(now, i * 7);
-    const change = (rng() - 0.5) * vol;
-    value += change;
-    data.push({
-      date: format(date, 'yyyy-MM-dd'),
-      value: +value.toFixed(1),
-      fiveYearAvg: +(value + (rng() - 0.4) * vol * 3).toFixed(1),
-      fiveYearMin: +(value - vol * 4 - rng() * vol * 2).toFixed(1),
-      fiveYearMax: +(value + vol * 6 + rng() * vol * 2).toFixed(1),
-    });
-  }
-  return data;
-}
-
-export const eiaData = {
-  nextRelease: getNextEIARelease(),
-  crude: {
-    label: 'US Crude Stocks',
-    value: 430.2,
-    unit: 'mn bbl',
-    weekChange: -2.4,
-    consensus: -1.8,
-    surprise: -0.6,
-    signal: 'BULLISH',
-    history: generateInventoryHistory(430, 52, 3.0, 401),
-  },
-  cushing: {
-    label: 'Cushing Stocks',
-    value: 24.8,
-    unit: 'mn bbl',
-    weekChange: -0.8,
-    interpretation: 'Cushing draws tightening WTI delivery hub, supports backwardation.',
-    history: generateInventoryHistory(25, 52, 1.0, 402),
-  },
-  gasoline: {
-    label: 'Gasoline Stocks',
-    value: 228.4,
-    unit: 'mn bbl',
-    weekChange: -1.2,
-    interpretation: 'Gasoline draws ahead of summer driving season, supports RBOB cracks.',
-    history: generateInventoryHistory(228, 52, 2.5, 403),
-  },
-  refineryUtil: {
-    label: 'Refinery Utilization',
-    value: 91.2,
-    unit: '%',
-    weekChange: +0.4,
-    interpretation: 'Rising utilization signals strong product demand and crude consumption.',
-  },
-};
+// ─── PHYSICAL ────────────────────────────────────────
 
 export const freightData = {
   bdti: {
