@@ -2,11 +2,12 @@ import os
 import requests
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from app.api import prices, news, inventories, refineries
+from app.api import prices, news, inventories, refineries, macro
 import app.models  # Ensures all SQLAlchemy models are imported
 from app.models.base import Base
 from app.models.inventories import Inventory
 from app.models.refineries import RefineryData
+from app.models.macro import MacroData
 from app.database.connection import engine, get_db
 
 # Create tables if they do not exist
@@ -18,6 +19,7 @@ app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
 app.include_router(news.router, prefix="/api/news", tags=["news"])
 app.include_router(inventories.router, prefix="/api/inventories", tags=["inventories"])
 app.include_router(refineries.router, prefix="/api/refineries", tags=["refineries"])
+app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
 
 @app.get("/health")
 def health_check():
@@ -26,6 +28,17 @@ def health_check():
 @app.get("/api/debug/tables")
 def get_debug_tables():
     return list(Base.metadata.tables.keys())
+
+@app.get("/api/debug/twelve-data")
+def debug_twelve_data():
+    from app.services.twelvedata_service import get_twelve_data_client
+    client_config = get_twelve_data_client()
+    key = client_config.get("api_key", "")
+    return {
+        "api_key_loaded": bool(key),
+        "api_key_length": len(key),
+        "first_5_chars": key[:5] if key else ""
+    }
 
 @app.get("/api/debug/eia-test")
 def debug_eia_test():
@@ -69,5 +82,13 @@ def debug_inventory_db(db: Session = Depends(get_db)):
 @app.post("/api/admin/cleanup-inventory")
 def cleanup_inventory(db: Session = Depends(get_db)):
     deleted_count = db.query(Inventory).filter(Inventory.quantity == 0).delete()
+    db.commit()
+    return {"deleted_rows": deleted_count}
+
+@app.post("/api/admin/cleanup-macro")
+def cleanup_macro(db: Session = Depends(get_db)):
+    deleted_count = db.query(MacroData).filter(
+        (MacroData.dxy == None) | (MacroData.us10y == None)
+    ).delete()
     db.commit()
     return {"deleted_rows": deleted_count}
