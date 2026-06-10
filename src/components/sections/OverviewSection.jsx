@@ -23,6 +23,7 @@ import useDashboardStore from '../../stores/dashboardStore';
 import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
+import { useMacroData } from '../../hooks/useMacroData';
 
 // ─── Helpers ─────────────────────────────────────────────────
 function getCorrelationColor(value, isDark) {
@@ -140,6 +141,7 @@ function MiniHeatmap({ title, labels, matrix, colors, isDark }) {
 
 // ─── Main Component ──────────────────────────────────────────
 export default function OverviewSection() {
+  const { data: macroData, loading: macroLoading, error: macroError } = useMacroData();
   const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals } = useDashboardStore();
   const { theme, colors } = useTheme();
   const { instruments } = useLivePriceStore();
@@ -234,13 +236,12 @@ export default function OverviewSection() {
       {/* ═══════════ ROW 1: Key Benchmarks ═══════════ */}
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="section-header mb-4">KEY BENCHMARKS</div>
-        <div className="grid grid-cols-5 gap-16">
+        <div className="grid grid-cols-4 gap-16">
           {[
             { label: 'Brent', val: brent ? brent.price.toFixed(2) : '82.40', chg: brent ? `${brent.change > 0 ? '+' : ''}${brent.change.toFixed(2)}` : '+0.32', pct: brent ? `${brent.changePercent > 0 ? '+' : ''}${brent.changePercent.toFixed(2)}%` : '+0.39%', unit: '$/bbl' },
             { label: 'WTI', val: wti ? wti.price.toFixed(2) : '78.15', chg: wti ? `${wti.change > 0 ? '+' : ''}${wti.change.toFixed(2)}` : '+0.28', pct: wti ? `${wti.changePercent > 0 ? '+' : ''}${wti.changePercent.toFixed(2)}%` : '+0.36%', unit: '$/bbl' },
             { label: 'M1-M12', val: '+2.80', chg: '+0.08', pct: '', unit: '$/bbl', extraLabel: 'BACKWD' },
             { label: 'Crack 3:2:1', val: '18.40', chg: '+0.60', pct: '+3.37%', unit: '$/bbl' },
-            { label: 'DXY', val: '104.20', chg: '-0.18', pct: '-0.17%', unit: '' },
           ].map((b) => {
             const isUp = b.chg.startsWith('+');
             return (
@@ -285,8 +286,8 @@ export default function OverviewSection() {
         </div>
       </div>
 
-      {/* ═══════════ ROW 1b: Regime + OPEC side-by-side ═══════════ */}
-      <div className="grid grid-cols-2 gap-10">
+      {/* ═══════════ ROW 1b: Regime + OPEC + Macro ═══════════ */}
+      <div className="grid grid-cols-3 gap-10">
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-4">ACTIVE REGIME</div>
           <div className="px-4 py-3 rounded-lg border mb-4" style={{ backgroundColor: colors.bullish + '12', borderColor: colors.bullish }}>
@@ -318,6 +319,35 @@ export default function OverviewSection() {
             <span style={{ color: colors.textMuted, fontSize: '12px' }}>Next Meeting</span>
             <CountdownTimer targetDate={opecData.nextMeeting} />
           </div>
+        </div>
+        <div className="border p-6 rounded-xl theme-card flex flex-col" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+          <div className="section-header mb-4">MACRO SNAPSHOT</div>
+          {macroLoading ? (
+            <div className="flex-1 flex items-center justify-center data-value" style={{ color: colors.textMuted }}>Loading...</div>
+          ) : macroError ? (
+            <div className="flex-1 flex items-center justify-center data-value" style={{ color: colors.bearish }}>Error loading data</div>
+          ) : macroData ? (
+            <div className="grid grid-cols-1 gap-4">
+              {[
+                { label: 'DXY', val: macroData.dxy.value.toFixed(2), chg: macroData.dxy.change, unit: '' },
+                { label: 'US 10Y', val: macroData.us10y.value.toFixed(2), chg: macroData.us10y.change, unit: '%' },
+                { label: 'Yield Curve', val: macroData.yield_curve.value.toFixed(2), chg: macroData.yield_curve.change, unit: '%' },
+              ].map((m) => {
+                const isUp = m.chg >= 0;
+                return (
+                  <div key={m.label} className="flex items-center justify-between">
+                    <span style={{ color: colors.textMuted, fontSize: '12px', fontWeight: 600 }}>{m.label}</span>
+                    <div className="text-right">
+                      <div className="data-value font-bold" style={{ color: colors.textPrimary }}>{m.val}<span style={{ fontSize: '11px', color: colors.textFaint, fontWeight: 400 }}>{m.unit}</span></div>
+                      <div className="data-value text-xs" style={{ color: isUp ? colors.bullish : colors.bearish }}>
+                        {isUp ? '+' : ''}{m.chg.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
 
