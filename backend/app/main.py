@@ -2,7 +2,7 @@ import os
 import requests
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from app.api import prices, news, inventories, refineries, macro
+from app.api import prices, news, inventories, refineries, macro, spreads
 import app.models  # Ensures all SQLAlchemy models are imported
 from app.models.base import Base
 from app.models.inventories import Inventory
@@ -20,6 +20,7 @@ app.include_router(news.router, prefix="/api/news", tags=["news"])
 app.include_router(inventories.router, prefix="/api/inventories", tags=["inventories"])
 app.include_router(refineries.router, prefix="/api/refineries", tags=["refineries"])
 app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
+app.include_router(spreads.router, prefix="/api/spreads", tags=["spreads"])
 
 @app.get("/health")
 def health_check():
