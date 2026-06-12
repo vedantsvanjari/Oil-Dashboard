@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
@@ -147,7 +147,12 @@ export default function OverviewSection() {
   const { data: macroData, loading: macroLoading, error: macroError } = useMacroData();
   const { data: opecData, loading: opecLoading, error: opecError } = useOpecData();
   const { data: corrData, loading: corrLoading, error: corrError } = useCorrelations();
-  const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals } = useDashboardStore();
+  const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals, sentimentData, isSentimentLoading, fetchSentimentData } = useDashboardStore();
+  
+  useEffect(() => {
+    fetchSentimentData();
+  }, [fetchSentimentData]);
+
   const { theme, colors } = useTheme();
   const { instruments } = useLivePriceStore();
   const isDark = theme === 'dark';
@@ -160,80 +165,44 @@ export default function OverviewSection() {
   const m1m12 = spreads[3];
   const m1m12Chart = m1m12.series.slice(-66);
 
-  // Dynamic sentiment calculation based on enabled signals
-  const { computedScore, computedLabel, enabledSignals, activeCount, totalCount } = useMemo(() => {
-    const all = sentimentAnalysis.signals;
+  // Dynamic sentiment calculation based on backend payload
+  const { computedScore, computedLabel, enabledSignals, activeCount, totalCount, narrativeText } = useMemo(() => {
+    if (!sentimentData) {
+      return { computedScore: 50, computedLabel: 'LOADING', enabledSignals: [], activeCount: 0, totalCount: 0, narrativeText: 'Loading sentiment data...' };
+    }
+    
+    const all = sentimentData.metrics;
     const enabled = all.filter((s) => sentimentSignals[s.storeKey]);
-    const totalWeight = enabled.reduce((sum, s) => sum + s.weight, 0);
-    const weightedScore = totalWeight > 0
-      ? enabled.reduce((sum, s) => sum + s.score * s.weight, 0) / totalWeight
-      : 50;
-    const score = Math.round(weightedScore);
+    
+    // We recalculate the score dynamically based on toggled signals
+    const baseScore = 50;
+    const toggledContributions = enabled.reduce((sum, s) => sum + (s.contribution || 0), 0);
+    const score = Math.max(0, Math.min(100, baseScore + toggledContributions));
+    
     let label = 'NEUTRAL';
-    if (score >= 75) label = 'STRONGLY BULLISH';
-    else if (score >= 62) label = 'BULLISH';
-    else if (score >= 55) label = 'SLIGHTLY BULLISH';
-    else if (score >= 45) label = 'NEUTRAL';
-    else if (score >= 38) label = 'SLIGHTLY BEARISH';
-    else if (score >= 25) label = 'BEARISH';
-    else label = 'STRONGLY BEARISH';
-    return { computedScore: score, computedLabel: label, enabledSignals: enabled, activeCount: enabled.length, totalCount: all.length };
-  }, [sentimentSignals]);
+    if (score >= 65) label = 'BULLISH';
+    else if (score <= 35) label = 'BEARISH';
+    
+    // If all signals are active, use backend narrative, otherwise fallback to mixed
+    const text = (enabled.length === all.length - 1) // -1 for Rig Count
+      ? sentimentData.narrative 
+      : 'Custom signal combination active. Net directional bias updated dynamically.';
+
+    return { 
+      computedScore: score, 
+      computedLabel: label, 
+      enabledSignals: enabled, 
+      activeCount: enabled.length, 
+      totalCount: all.length,
+      narrativeText: text
+    };
+  }, [sentimentSignals, sentimentData]);
 
   const sentimentColor =
-    computedScore >= 62 ? colors.bullish :
+    computedScore >= 55 ? colors.bullish :
       computedScore >= 45 ? colors.neutral : colors.bearish;
 
-  // Generate dynamic market behavior text based on active signals
-  const marketBehavior = useMemo(() => {
-    const parts = [];
-    const activeKeys = Object.entries(sentimentSignals).filter(([, v]) => v).map(([k]) => k);
-
-    if (activeKeys.includes('curveStructure') && activeKeys.includes('eiaInventory')) {
-      parts.push('Physical fundamentals are the primary driver — backwardation and inventory draws confirm genuine tightness in the spot market.');
-    } else if (activeKeys.includes('curveStructure')) {
-      parts.push('Term-structure analysis shows backwardation, indicating physical tightness.');
-    } else if (activeKeys.includes('eiaInventory')) {
-      parts.push('US inventory data points to persistent crude draws, reducing available supply.');
-    }
-
-    if (activeKeys.includes('opecCompliance')) {
-      parts.push('OPEC+ supply discipline remains intact with near-full compliance, constraining available barrels.');
-    }
-
-    if (activeKeys.includes('usdDxy') && activeKeys.includes('positioning')) {
-      parts.push('Macro tailwinds are present: a weakening dollar supports USD-denominated commodities, while managed money net longs show rising speculative conviction.');
-    } else if (activeKeys.includes('usdDxy')) {
-      parts.push('The weakening US dollar provides a macro tailwind for crude benchmarks.');
-    }
-
-    if (activeKeys.includes('crackSpreads')) {
-      parts.push('Healthy refining margins are pulling crude off the market as refiners run at elevated throughput rates.');
-    }
-
-    if (activeKeys.includes('geopoliticalRisk')) {
-      parts.push('Geopolitical risk premium is elevated due to Red Sea disruptions and Libyan supply losses, adding $2-3/bbl of risk premium.');
-    }
-
-    if (activeKeys.includes('rigCount')) {
-      parts.push('Declining US rig counts signal decelerating shale supply growth, removing the bearish overhang of unlimited US production response.');
-    }
-
-    if (parts.length === 0) {
-      parts.push('No fundamental signals are currently selected. Enable metrics below to generate a market behavior analysis.');
-    }
-
-    // Price direction
-    if (computedScore >= 62) {
-      parts.push('Net assessment: the weight of evidence supports higher prices in the near to medium term. Brent likely to test $83-85 resistance zone.');
-    } else if (computedScore >= 45) {
-      parts.push('Net assessment: mixed signals suggest range-bound trading. Watch for catalysts to break out of current range.');
-    } else {
-      parts.push('Net assessment: bearish weight building. Brent likely to test $78-80 support levels.');
-    }
-
-    return parts.join(' ');
-  }, [sentimentSignals, computedScore]);
+  const marketBehavior = narrativeText;
 
   return (
     <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -411,9 +380,9 @@ export default function OverviewSection() {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              {sentimentAnalysis.signals.map((sig) => {
+              {(sentimentData?.metrics || []).map((sig) => {
                 const isEnabled = sentimentSignals[sig.storeKey];
-                const c = sig.signal === 'BULL' ? colors.bullish : sig.signal === 'BEAR' ? colors.bearish : colors.neutral;
+                const c = sig.signal === 'Bullish' ? colors.bullish : sig.signal === 'Bearish' ? colors.bearish : colors.neutral;
                 return (
                   <button
                     key={sig.storeKey}
@@ -441,7 +410,7 @@ export default function OverviewSection() {
                         {sig.name}
                       </div>
                       <div style={{ color: colors.textFaint, fontSize: '10px' }}>
-                        Weight: {sig.weight}% · Score: {sig.score}
+                        Value: {sig.value} · Contrib: {sig.contribution > 0 ? '+' : ''}{sig.contribution}
                       </div>
                     </div>
                   </button>
@@ -511,10 +480,10 @@ export default function OverviewSection() {
 
             {/* Signal cards grid */}
             <div className="grid grid-cols-2 gap-4">
-              {sentimentAnalysis.signals.map((sig) => {
+              {(sentimentData?.metrics || []).map((sig) => {
                 const isEnabled = sentimentSignals[sig.storeKey];
                 const isExpanded = expandedSignal === sig.storeKey;
-                const c = sig.signal === 'BULL' ? colors.bullish : sig.signal === 'BEAR' ? colors.bearish : colors.neutral;
+                const c = sig.signal === 'Bullish' ? colors.bullish : sig.signal === 'Bearish' ? colors.bearish : colors.neutral;
 
                 if (!isEnabled) return null;
 
@@ -536,39 +505,38 @@ export default function OverviewSection() {
                       <div className="flex items-center gap-2">
                         <span className="data-value font-semibold" style={{ color: colors.textSecondary, fontSize: '12px' }}>{sig.value}</span>
                         <span className="data-value font-bold" style={{ color: c, fontSize: '12px' }}>
-                          {sig.signal} {sig.signal === 'BULL' ? '▲' : sig.signal === 'BEAR' ? '▼' : '→'}
+                          {sig.signal.toUpperCase()} {sig.signal === 'Bullish' ? '▲' : sig.signal === 'Bearish' ? '▼' : '→'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Score bar */}
+                    {/* Contribution bar */}
                     <div className="flex items-center gap-3 mb-2">
                       <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.bgElevated }}>
                         <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${sig.score}%`, backgroundColor: c, opacity: 0.8 }} />
+                          style={{ width: `${Math.min(100, Math.abs(sig.contribution) * 5)}%`, backgroundColor: c, opacity: 0.8 }} />
                       </div>
-                      <span className="data-value" style={{ color: c, fontSize: '12px', minWidth: '28px', textAlign: 'right' }}>{sig.score}</span>
+                      <span className="data-value" style={{ color: c, fontSize: '12px', minWidth: '28px', textAlign: 'right' }}>
+                        {sig.contribution > 0 ? '+' : ''}{sig.contribution} pts
+                      </span>
                     </div>
 
-                    <div className="text-xs" style={{ color: colors.textMuted, fontSize: '11px' }}>{sig.detail}</div>
+                    <div className="text-xs" style={{ color: colors.textMuted, fontSize: '11px' }}>Source: {sig.source}</div>
 
                     {/* Expanded details */}
                     {isExpanded && (
                       <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: colors.borderSubtle }}>
                         <div>
-                          <span className="text-xs font-medium" style={{ color: colors.bullish, fontSize: '11px' }}>Bullish case: </span>
-                          <span className="text-xs" style={{ color: colors.textSecondary, fontSize: '11px' }}>{sig.bullishReason}</span>
+                          <span className="text-xs font-medium" style={{ color: colors.textPrimary, fontSize: '11px' }}>Backend Endpoint: </span>
+                          <span className="text-xs data-value" style={{ color: colors.textSecondary, fontSize: '11px' }}>{sig.source}</span>
                         </div>
                         <div>
-                          <span className="text-xs font-medium" style={{ color: colors.bearish, fontSize: '11px' }}>Bearish risk: </span>
-                          <span className="text-xs" style={{ color: colors.textSecondary, fontSize: '11px' }}>{sig.bearishReason}</span>
+                          <span className="text-xs font-medium" style={{ color: colors.textPrimary, fontSize: '11px' }}>Calculated Value: </span>
+                          <span className="text-xs data-value" style={{ color: colors.textSecondary, fontSize: '11px' }}>{sig.value}</span>
                         </div>
                         <div>
-                          <span className="text-xs font-medium" style={{ color: colors.neutral, fontSize: '11px' }}>Market impact: </span>
-                          <span className="text-xs" style={{ color: colors.textSecondary, fontSize: '11px' }}>{sig.marketImpact}</span>
-                        </div>
-                        <div className="flex items-center gap-2 pt-1">
-                          <span style={{ color: colors.textFaint, fontSize: '10px' }}>Weight in model: {sig.weight}%</span>
+                          <span className="text-xs font-medium" style={{ color: colors.textPrimary, fontSize: '11px' }}>Directional Signal: </span>
+                          <span className="text-xs" style={{ color: c, fontSize: '11px' }}>{sig.signal} ({sig.contribution > 0 ? '+' : ''}{sig.contribution} score impact)</span>
                         </div>
                       </div>
                     )}

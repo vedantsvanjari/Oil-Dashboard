@@ -62,6 +62,22 @@ const useDashboardStore = create((set) => ({
       Object.keys(state.sentimentSignals).forEach((k) => { updated[k] = enabled; });
       return { sentimentSignals: updated };
     }),
+
+  // Server-side Sentiment Engine Data
+  sentimentData: null,
+  isSentimentLoading: false,
+  sentimentError: null,
+  fetchSentimentData: async () => {
+    set({ isSentimentLoading: true, sentimentError: null });
+    try {
+      const response = await fetch('/api/sentiment');
+      if (!response.ok) throw new Error('Failed to fetch sentiment data');
+      const data = await response.json();
+      set({ sentimentData: data, isSentimentLoading: false });
+    } catch (err) {
+      set({ sentimentError: err.message, isSentimentLoading: false });
+    }
+  },
 }));
 
 export default useDashboardStore;
