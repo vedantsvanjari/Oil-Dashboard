@@ -24,6 +24,7 @@ import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
 import { useMacroData } from '../../hooks/useMacroData';
+import { useOpecData } from '../../hooks/useOpecData';
 import { useCorrelations } from '../../hooks/useCorrelations';
 import CorrelationHeatmap from '../charts/CorrelationHeatmap';
 
@@ -144,6 +145,7 @@ function MiniHeatmap({ title, labels, matrix, colors, isDark }) {
 // ─── Main Component ──────────────────────────────────────────
 export default function OverviewSection() {
   const { data: macroData, loading: macroLoading, error: macroError } = useMacroData();
+  const { data: opecData, loading: opecLoading, error: opecError } = useOpecData();
   const { data: corrData, loading: corrLoading, error: corrError } = useCorrelations();
   const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals } = useDashboardStore();
   const { theme, colors } = useTheme();
@@ -309,18 +311,27 @@ export default function OverviewSection() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>TARGET</div>
-              <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>27.2</div>
-              <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+              <div className="data-value text-xl font-bold" style={{ color: colors.textMuted }}>N/A</div>
             </div>
             <div>
               <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>ACTUAL</div>
-              <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>27.45</div>
-              <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+              {opecLoading ? (
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>Loading...</div>
+              ) : opecError ? (
+                <div style={{ color: colors.bearish, fontSize: '11px' }}>Error</div>
+              ) : (
+                <>
+                  <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
+                    {opecData?.totalProduction?.latest?.toFixed(2) || 'N/A'}
+                  </div>
+                  <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: colors.borderSubtle }}>
             <span style={{ color: colors.textMuted, fontSize: '12px' }}>Next Meeting</span>
-            <CountdownTimer targetDate={opecData.nextMeeting} />
+            <span className="text-xs" style={{ color: colors.textMuted }}>Data source not implemented</span>
           </div>
         </div>
         <div className="border p-6 rounded-xl theme-card flex flex-col" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
@@ -742,13 +753,16 @@ export default function OverviewSection() {
           {/* OPEC mini table */}
           <div className="mt-4 pt-4 border-t" style={{ borderColor: colors.borderSubtle }}>
             <div className="section-header mb-2">OPEC COMPLIANCE</div>
-            {opecData.members.map((m) => (
+            {opecLoading ? (
+              <div className="text-xs" style={{ color: colors.textMuted }}>Loading...</div>
+            ) : opecError ? (
+              <div className="text-xs" style={{ color: colors.bearish }}>Failed to load</div>
+            ) : opecData?.members?.map((m) => (
               <div key={m.country} className="flex items-center justify-between py-1">
                 <span style={{ color: colors.textSecondary, fontSize: '11px' }}>{m.flag} {m.country}</span>
-                <span className="data-value" style={{
-                  color: m.compliance >= 100 ? colors.bullish : m.compliance >= 97 ? colors.neutral : colors.bearish,
-                  fontSize: '11px',
-                }}>{m.compliance.toFixed(1)}%</span>
+                <span className="data-value text-xs" style={{ color: colors.textMuted }}>
+                  N/A
+                </span>
               </div>
             ))}
           </div>
