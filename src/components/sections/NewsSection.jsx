@@ -13,7 +13,7 @@ const categories = ['All', 'OPEC', 'Geopolitics', 'Inventories', 'Tankers', 'Ref
 
 export default function NewsSection() {
   const { newsCategory, setNewsCategory, newsSearch, setNewsSearch } = useDashboardStore();
-  const { newsItems, isLoadingNews, newsError, fetchNews } = useNewsStore();
+  const { newsItems, aggregateSentiment, isLoadingNews, newsError, fetchNews } = useNewsStore();
   const { data: opecData, loading: opecLoading, error: opecError } = useOpecData();
   const { colors } = useTheme();
 
@@ -107,8 +107,66 @@ export default function NewsSection() {
           </div>
         </div>
 
-        {/* Right: OPEC Tracker + Scheduled Releases */}
+        {/* Right: Summary Cards */}
         <div className="space-y-5">
+          {/* Overall News Sentiment */}
+          <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+            <div className="section-header mb-4" style={{ fontSize: '14px' }}>OVERALL NEWS SENTIMENT</div>
+            
+            {isLoadingNews ? (
+              <div className="text-sm" style={{ color: colors.textMuted }}>Loading sentiment...</div>
+            ) : aggregateSentiment ? (
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="data-value text-2xl font-bold" 
+                      style={{ 
+                        color: aggregateSentiment.market_sentiment === 'Bullish' ? colors.bullish : 
+                               aggregateSentiment.market_sentiment === 'Bearish' ? colors.bearish : colors.neutral 
+                      }}>
+                      {aggregateSentiment.market_sentiment.toUpperCase()}
+                    </div>
+                    <div style={{ color: colors.textSecondary, fontSize: '12px' }}>
+                      {aggregateSentiment.confidence}% Confidence
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 rounded-full border-4 flex items-center justify-center"
+                    style={{
+                      borderColor: aggregateSentiment.market_sentiment === 'Bullish' ? colors.bullish : 
+                                   aggregateSentiment.market_sentiment === 'Bearish' ? colors.bearish : colors.neutral,
+                      backgroundColor: colors.bgElevated
+                    }}>
+                    <span style={{ 
+                      color: aggregateSentiment.market_sentiment === 'Bullish' ? colors.bullish : 
+                             aggregateSentiment.market_sentiment === 'Bearish' ? colors.bearish : colors.neutral,
+                      fontSize: '18px' 
+                    }}>
+                      {aggregateSentiment.market_sentiment === 'Bullish' ? '▲' : 
+                       aggregateSentiment.market_sentiment === 'Bearish' ? '▼' : '→'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t" style={{ borderColor: colors.borderSubtle }}>
+                  <div className="text-center">
+                    <div className="data-value text-lg font-bold" style={{ color: colors.bullish }}>{aggregateSentiment.bullish}</div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>BULLISH</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="data-value text-lg font-bold" style={{ color: colors.bearish }}>{aggregateSentiment.bearish}</div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>BEARISH</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="data-value text-lg font-bold" style={{ color: colors.neutral }}>{aggregateSentiment.neutral}</div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>NEUTRAL</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm" style={{ color: colors.textMuted }}>Sentiment not available</div>
+            )}
+          </div>
+
           {/* OPEC Tracker */}
           <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
             <div className="section-header mb-4" style={{ fontSize: '14px' }}>OPEC+ TRACKER</div>

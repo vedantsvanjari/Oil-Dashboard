@@ -6,12 +6,10 @@ export default function NewsItem({ item }) {
   const { colors } = useTheme();
 
   const sentimentColor =
-    item.sentiment === 'bullish' ? colors.bullish :
-    item.sentiment === 'bearish' ? colors.bearish : colors.textMuted;
+    item.sentiment === 'Bullish' ? colors.bullish :
+    item.sentiment === 'Bearish' ? colors.bearish : colors.textMuted;
 
-  const sentimentLabel =
-    item.sentiment === 'bullish' ? 'BULLISH' :
-    item.sentiment === 'bearish' ? 'BEARISH' : 'NEUTRAL';
+  const sentimentLabel = item.sentiment.toUpperCase();
 
   return (
     <div className="flex border-b py-4 px-5 transition-colors duration-150"
@@ -52,22 +50,20 @@ export default function NewsItem({ item }) {
           </span>
         </div>
 
-        {/* Impact score bar */}
+        {/* Confidence score bar */}
         <div className="flex items-center gap-2">
-          <span style={{ color: colors.textMuted, fontSize: '11px' }}>IMPACT</span>
+          <span style={{ color: colors.textMuted, fontSize: '11px' }}>CONFIDENCE</span>
           <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.bgElevated, maxWidth: '100px' }}>
             <div
               className="h-full rounded-full"
               style={{
-                width: `${item.impactScore * 10}%`,
-                backgroundColor:
-                  item.impactScore >= 8 ? colors.bearish :
-                  item.impactScore >= 5 ? colors.neutral : colors.textMuted,
+                width: `${item.confidence}%`,
+                backgroundColor: sentimentColor,
               }}
             />
           </div>
           <span className="data-value" style={{ color: colors.textMuted, fontSize: '11px' }}>
-            {item.impactScore}/10
+            {item.confidence}%
           </span>
         </div>
       </div>
