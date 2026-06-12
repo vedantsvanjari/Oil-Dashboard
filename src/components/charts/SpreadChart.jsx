@@ -4,7 +4,6 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import useDashboardStore from '../../stores/dashboardStore';
-import { spreads, wtiBrentSpread, crackSpread } from '../../data/mockData';
 import { useTheme } from '../../theme/ThemeContext';
 
 function filterByRange(data, range) {
@@ -37,28 +36,23 @@ function CustomTooltip({ active, payload, label, colors }) {
   );
 }
 
-export default function SpreadChart() {
+export default function SpreadChart({ chartData, activeTab, onTabChange }) {
   const { colors } = useTheme();
-  const { selectedSpreadChart, setSelectedSpreadChart, spreadTimeRange, setSpreadTimeRange } = useDashboardStore();
+  const { spreadTimeRange, setSpreadTimeRange } = useDashboardStore();
 
-  const allSpreads = {
-    m1m2: spreads[0],
-    m1m12: spreads[3],
-    wtiBrent: wtiBrentSpread,
-    crack: crackSpread,
-  };
-
-  const currentSpread = allSpreads[selectedSpreadChart] || allSpreads.m1m2;
-
-  const chartData = useMemo(() => {
-    return filterByRange(currentSpread.series || [], spreadTimeRange);
-  }, [currentSpread, spreadTimeRange]);
+  const filteredData = useMemo(() => {
+    return filterByRange(chartData || [], spreadTimeRange);
+  }, [chartData, spreadTimeRange]);
 
   const tabs = [
-    { id: 'm1m2', label: 'M1-M2' },
-    { id: 'm1m12', label: 'M1-M12' },
+    { id: 'm1m2', label: 'WTI M1-M2' },
+    { id: 'm1m6', label: 'WTI M1-M6' },
+    { id: 'm1m12', label: 'WTI M1-M12' },
+    { id: 'brent_m1m2', label: 'Brent M1-M2' },
+    { id: 'brent_m1m6', label: 'Brent M1-M6' },
+    { id: 'brent_m1m12', label: 'Brent M1-M12' },
     { id: 'wtiBrent', label: 'WTI-Brent' },
-    { id: 'crack', label: '3:2:1' },
+    { id: 'crack', label: 'Crack 3:2:1' },
   ];
 
   const timeRanges = ['1M', '3M', '1Y', '3Y'];
@@ -70,11 +64,11 @@ export default function SpreadChart() {
           {tabs.map((t) => (
             <button
               key={t.id}
-              onClick={() => setSelectedSpreadChart(t.id)}
+              onClick={() => onTabChange && onTabChange(t.id)}
               className="px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-150"
               style={{
-                backgroundColor: selectedSpreadChart === t.id ? colors.activeTabBg : 'transparent',
-                color: selectedSpreadChart === t.id ? colors.textPrimary : colors.textMuted,
+                backgroundColor: activeTab === t.id ? colors.activeTabBg : 'transparent',
+                color: activeTab === t.id ? colors.textPrimary : colors.textMuted,
               }}
             >
               {t.label}
@@ -100,7 +94,7 @@ export default function SpreadChart() {
 
       <div style={{ height: 380 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+          <ComposedChart data={filteredData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.gridLine} />
             <XAxis
               dataKey="date"

@@ -24,6 +24,8 @@ import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
 import { useMacroData } from '../../hooks/useMacroData';
+import { useCorrelations } from '../../hooks/useCorrelations';
+import CorrelationHeatmap from '../charts/CorrelationHeatmap';
 
 // ─── Helpers ─────────────────────────────────────────────────
 function getCorrelationColor(value, isDark) {
@@ -142,6 +144,7 @@ function MiniHeatmap({ title, labels, matrix, colors, isDark }) {
 // ─── Main Component ──────────────────────────────────────────
 export default function OverviewSection() {
   const { data: macroData, loading: macroLoading, error: macroError } = useMacroData();
+  const { data: corrData, loading: corrLoading, error: corrError } = useCorrelations();
   const { sentimentSignals, toggleSentimentSignal, setAllSentimentSignals } = useDashboardStore();
   const { theme, colors } = useTheme();
   const { instruments } = useLivePriceStore();
@@ -681,10 +684,22 @@ export default function OverviewSection() {
       {/* ═══════════ ROW 4: Correlations + Outlook ═══════════ */}
       <div className="grid gap-16" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
-          <MiniHeatmap title="SPREAD CORRELATION (30D)" labels={spreadCorrelationLabels} matrix={spreadCorrelationMatrix} colors={colors} isDark={isDark} />
+          <CorrelationHeatmap 
+            title="PRODUCT CORRELATION (30D)"
+            labels={corrData?.product?.labels}
+            matrix={corrData?.product?.matrix}
+            loading={corrLoading}
+            error={corrError}
+          />
         </div>
         <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
-          <MiniHeatmap title="PRODUCT CORRELATION (30D)" labels={productCorrelationLabels} matrix={productCorrelationMatrix} colors={colors} isDark={isDark} />
+          <CorrelationHeatmap 
+            title="MACRO CORRELATION (30D)"
+            labels={corrData?.macro?.labels}
+            matrix={corrData?.macro?.matrix}
+            loading={corrLoading}
+            error={corrError}
+          />
         </div>
 
         {/* Price outlook */}

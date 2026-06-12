@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { correlationLabels, correlationMatrix } from '../../data/mockData';
 import { useTheme } from '../../theme/ThemeContext';
 
 function getCorrelationColor(value, isDark) {
@@ -41,21 +40,48 @@ function getInterpretation(value) {
   return 'Very Weak';
 }
 
-export default function CorrelationHeatmap() {
+export default function CorrelationHeatmap({ title, labels, matrix, loading, error }) {
   const { theme, colors } = useTheme();
   const isDark = theme === 'dark';
   const [tooltip, setTooltip] = useState(null);
 
+  if (loading) {
+    return (
+      <div>
+        <div className="section-header mb-3">{title || 'CORRELATION MATRIX'}</div>
+        <div className="flex items-center justify-center min-h-[300px] text-sm" style={{ color: colors.textMuted }}>Loading correlations...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="section-header mb-3">{title || 'CORRELATION MATRIX'}</div>
+        <div className="flex items-center justify-center min-h-[300px] text-sm" style={{ color: colors.bearish }}>Error loading correlations: {error}</div>
+      </div>
+    );
+  }
+
+  if (!labels || !matrix || labels.length === 0 || matrix.length === 0) {
+    return (
+      <div>
+        <div className="section-header mb-3">{title || 'CORRELATION MATRIX'}</div>
+        <div className="flex items-center justify-center min-h-[300px] text-sm" style={{ color: colors.textMuted }}>No correlation data available</div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="section-header mb-3">CORRELATION MATRIX (30-DAY ROLLING)</div>
+      <div className="section-header mb-3">{title || 'CORRELATION MATRIX'}</div>
 
       <div className="overflow-x-auto">
         <table style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr>
               <th style={{ width: 70 }} />
-              {correlationLabels.map((label) => (
+              {labels.map((label) => (
                 <th
                   key={label}
                   className="text-center px-1 py-1.5"
@@ -73,7 +99,7 @@ export default function CorrelationHeatmap() {
             </tr>
           </thead>
           <tbody>
-            {correlationMatrix.map((row, i) => (
+            {matrix.map((row, i) => (
               <tr key={i}>
                 <td
                   className="pr-2 py-1"
@@ -85,7 +111,7 @@ export default function CorrelationHeatmap() {
                     fontFamily: "'IBM Plex Sans', sans-serif",
                   }}
                 >
-                  {correlationLabels[i]}
+                  {labels[i]}
                 </td>
                 {row.map((value, j) => (
                   <td
@@ -120,7 +146,7 @@ export default function CorrelationHeatmap() {
         <div className="mt-2 px-3 py-1.5 inline-flex items-center gap-2 border rounded-md"
           style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder }}>
           <span className="text-xs" style={{ color: colors.textSecondary }}>
-            {correlationLabels[tooltip.row]} × {correlationLabels[tooltip.col]}:
+            {labels[tooltip.row]} × {labels[tooltip.col]}:
           </span>
           <span className="data-value text-xs font-semibold" style={{ color: colors.textPrimary }}>
             {tooltip.value.toFixed(2)}
