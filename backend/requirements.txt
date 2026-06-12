@@ -6,5 +6,8 @@ python-dotenv
 alembic
 yfinance
 pandas
+numpy
 feedparser
 requests
+pytest
+httpx

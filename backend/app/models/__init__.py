@@ -2,4 +2,8 @@ from .base import Base
 from .prices import Price
 from .news import News
 from .inventories import Inventory
-
+from .macro import MacroData
+from .refineries import RefineryData
+from .calendar_spread import CalendarSpread
+from .crack_spread import CrackSpread
+from .correlation import CorrelationSnapshot

@@ -11,7 +11,11 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from app.models.base import Base
 # Import all models here so they register with Base.metadata
-from app.models import Price, News, Inventory
+from app.models import (
+    Price, News, Inventory,
+    MacroData, RefineryData,
+    CalendarSpread, CrackSpread, CorrelationSnapshot,
+)
 
 load_dotenv()
 

@@ -3,10 +3,12 @@ import { spreads, wtiBrentSpread, crackSpread } from '../../data/mockData';
 import SpreadCard from '../ui/SpreadCard';
 import SpreadChart from '../charts/SpreadChart';
 import { useTheme } from '../../theme/ThemeContext';
+import { useBrentWtiSpread } from '../../hooks/useBrentWtiSpread';
 
 export default function SpreadsSection() {
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const { colors } = useTheme();
+  const { data: brentWtiData, loading: brentWtiLoading, error: brentWtiError } = useBrentWtiSpread();
 
   return (
     <div className="px-6 py-8 space-y-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -21,41 +23,30 @@ export default function SpreadsSection() {
 
       {/* Second row: WTI-Brent + Crack Spread */}
       <div className="grid grid-cols-2 gap-16">
-        <div className="p-5 border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
+        <div className="p-5 border rounded-xl theme-card flex flex-col" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{wtiBrentSpread.name}</span>
+            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Brent-WTI Spread</span>
           </div>
-          <div className="data-value text-2xl font-bold mb-2" style={{ color: colors.textPrimary }}>
-            {wtiBrentSpread.value.toFixed(2)}
-            <span className="text-sm ml-1.5" style={{ color: colors.textMuted }}>$/bbl</span>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Day Chg</span>
-              <span className="data-value" style={{ color: colors.bearish, fontSize: '12px' }}>
-                {wtiBrentSpread.dayChange.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>20D MA</span>
-              <span className="data-value" style={{ color: colors.textSecondary, fontSize: '12px' }}>
-                {wtiBrentSpread.ma20.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Z-Score</span>
-              <span className="data-value" style={{ color: colors.textSecondary, fontSize: '12px' }}>
-                {wtiBrentSpread.zScore.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span style={{ color: colors.textMuted, fontSize: '12px' }}>Percentile</span>
-              <span className="data-value px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: colors.bgElevated, color: colors.neutral, fontSize: '12px' }}>
-                {wtiBrentSpread.percentile}%
-              </span>
-            </div>
-          </div>
+          {brentWtiLoading ? (
+            <div className="flex-1 flex items-center justify-center data-value min-h-[120px]" style={{ color: colors.textMuted }}>Loading...</div>
+          ) : brentWtiError ? (
+            <div className="flex-1 flex items-center justify-center data-value min-h-[120px]" style={{ color: colors.bearish }}>Error loading data</div>
+          ) : brentWtiData ? (
+            <>
+              <div className="data-value text-2xl font-bold mb-2" style={{ color: colors.textPrimary }}>
+                {brentWtiData.current_spread.toFixed(2)}
+                <span className="text-sm ml-1.5" style={{ color: colors.textMuted }}>$/bbl</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span style={{ color: colors.textMuted, fontSize: '12px' }}>Day Chg</span>
+                  <span className="data-value" style={{ color: brentWtiData.daily_change >= 0 ? colors.bullish : colors.bearish, fontSize: '12px' }}>
+                    {brentWtiData.daily_change > 0 ? '+' : ''}{brentWtiData.daily_change.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
 
         <div className="p-5 border rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
