@@ -4,29 +4,18 @@ import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import {
-  instruments,
-  spreads,
-  crackSpread,
-  wtiBrentSpread,
-  opecData,
-  regimeData,
-  sentimentAnalysis,
-  spreadCorrelationLabels,
-  spreadCorrelationMatrix,
-  productCorrelationLabels,
-  productCorrelationMatrix,
-  scheduledReleases,
-} from '../../data/mockData';
 import { getNextEIARelease } from '../../utils/dates';
 import useDashboardStore from '../../stores/dashboardStore';
-import useLivePriceStore from '../../stores/livePriceStore';
 import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
 import { useMacroData } from '../../hooks/useMacroData';
 import { useOpecData } from '../../hooks/useOpecData';
 import { useCorrelations } from '../../hooks/useCorrelations';
+import { useLiveTicker } from '../../hooks/useLiveTicker';
+import { useSpreads } from '../../hooks/useSpreads';
+import { useInventoryData } from '../../hooks/useInventoryData';
 import CorrelationHeatmap from '../charts/CorrelationHeatmap';
+
 
 // ─── Helpers ─────────────────────────────────────────────────
 function getCorrelationColor(value, isDark) {
@@ -154,16 +143,23 @@ export default function OverviewSection() {
   }, [fetchSentimentData]);
 
   const { theme, colors } = useTheme();
-  const { instruments } = useLivePriceStore();
   const isDark = theme === 'dark';
   const [expandedSignal, setExpandedSignal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  const brent = instruments.find(i => i.id === 'brent');
-  const wti = instruments.find(i => i.id === 'wti');
+  const { benchmarks } = useLiveTicker();
+  const { data: spreadsData, loading: spreadsLoading } = useSpreads();
+  const { latestData: invLatest } = useInventoryData();
 
-  const m1m12 = spreads[3];
-  const m1m12Chart = m1m12.series.slice(-66);
+  const brentPrice = benchmarks.brent;
+  const wtiPrice = benchmarks.wti;
+  const crackValue = benchmarks.crack;
+  const crackChange = benchmarks.crackChange;
+
+  const brentSpreadData = spreadsData?.latest?.['brent_M1-M12'] || {};
+  const brentSpreadHistory = spreadsData?.history?.['brent_M1-M12']?.slice(-66) || [];
+  const brentSpreadVal = brentSpreadData?.spread || null;
+  const brentSpreadStats = brentSpreadData?.statistics || {};
 
   // Dynamic sentiment calculation based on backend payload
   const { computedScore, computedLabel, enabledSignals, activeCount, totalCount, narrativeText } = useMemo(() => {
@@ -212,10 +208,10 @@ export default function OverviewSection() {
         <div className="section-header mb-4">KEY BENCHMARKS</div>
         <div className="grid grid-cols-4 gap-16">
           {[
-            { label: 'Brent', val: brent ? brent.price.toFixed(2) : '82.40', chg: brent ? `${brent.change > 0 ? '+' : ''}${brent.change.toFixed(2)}` : '+0.32', pct: brent ? `${brent.changePercent > 0 ? '+' : ''}${brent.changePercent.toFixed(2)}%` : '+0.39%', unit: '$/bbl' },
-            { label: 'WTI', val: wti ? wti.price.toFixed(2) : '78.15', chg: wti ? `${wti.change > 0 ? '+' : ''}${wti.change.toFixed(2)}` : '+0.28', pct: wti ? `${wti.changePercent > 0 ? '+' : ''}${wti.changePercent.toFixed(2)}%` : '+0.36%', unit: '$/bbl' },
-            { label: 'M1-M12', val: '+2.80', chg: '+0.08', pct: '', unit: '$/bbl', extraLabel: 'BACKWD' },
-            { label: 'Crack 3:2:1', val: '18.40', chg: '+0.60', pct: '+3.37%', unit: '$/bbl' },
+            { label: 'Brent', val: brentPrice != null ? brentPrice.toFixed(2) : 'N/A', chg: 'N/A', pct: '', unit: '$/bbl' },
+            { label: 'WTI', val: wtiPrice != null ? wtiPrice.toFixed(2) : 'N/A', chg: 'N/A', pct: '', unit: '$/bbl' },
+            { label: 'M1-M12', val: brentSpreadVal != null ? `${brentSpreadVal > 0 ? '+' : ''}${brentSpreadVal.toFixed(2)}` : 'N/A', chg: '', pct: '', unit: '$/bbl', extraLabel: brentSpreadVal > 0 ? 'BACKWD' : brentSpreadVal < 0 ? 'CONTAN' : '' },
+            { label: 'Crack 3:2:1', val: crackValue != null ? crackValue.toFixed(2) : 'N/A', chg: crackChange != null ? `${crackChange > 0 ? '+' : ''}${crackChange.toFixed(2)}` : '', pct: '', unit: '$/bbl' },
           ].map((b) => {
             const isUp = b.chg.startsWith('+');
             return (
@@ -242,9 +238,13 @@ export default function OverviewSection() {
         {/* Quick fundamental row */}
         <div className="grid grid-cols-4 gap-16 mt-4">
           {[
-            { label: 'US Crude', val: '-2.4', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
-            { label: 'Cushing', val: '-0.8', unit: 'mn bbl', badge: 'DRAW', badgeColor: colors.bullish },
-            { label: 'OPEC Compl.', val: '99.1%', unit: '', badge: 'HIGH', badgeColor: colors.bullish },
+            { 
+              label: 'US Crude', 
+              val: invLatest?.crude?.weekChange != null ? `${invLatest.crude.weekChange > 0 ? '+' : ''}${invLatest.crude.weekChange}` : 'N/A', 
+              unit: 'mn bbl', 
+              badge: invLatest?.crude?.weekChange < 0 ? 'DRAW' : invLatest?.crude?.weekChange > 0 ? 'BUILD' : 'FLAT', 
+              badgeColor: invLatest?.crude?.weekChange < 0 ? colors.bullish : colors.bearish 
+            },
           ].map((f) => (
             <div key={f.label} className="flex items-center justify-between p-3 border rounded-lg"
               style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
@@ -264,15 +264,15 @@ export default function OverviewSection() {
       <div className="grid grid-cols-3 gap-10">
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-4">ACTIVE REGIME</div>
-          <div className="px-4 py-3 rounded-lg border mb-4" style={{ backgroundColor: colors.bullish + '12', borderColor: colors.bullish }}>
-            <div className="data-value text-sm font-bold" style={{ color: colors.bullish }}>PHYSICAL TIGHTNESS</div>
+          <div className="px-4 py-3 rounded-lg border mb-4" style={{ backgroundColor: sentimentColor + '12', borderColor: sentimentColor }}>
+            <div className="data-value text-sm font-bold uppercase" style={{ color: sentimentColor }}>{sentimentData?.regime || 'NEUTRAL'}</div>
           </div>
           <div className="flex items-center gap-3 mb-2">
             <span style={{ color: colors.textMuted, fontSize: '12px' }}>Confidence</span>
-            <span className="data-value text-base font-semibold" style={{ color: colors.textPrimary }}>82%</span>
+            <span className="data-value text-base font-semibold" style={{ color: colors.textPrimary }}>{sentimentData?.confidence || 50}%</span>
           </div>
           <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.bgElevated }}>
-            <div className="h-full rounded-full" style={{ width: '82%', backgroundColor: colors.bullish }} />
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${sentimentData?.confidence || 50}%`, backgroundColor: sentimentColor }} />
           </div>
         </div>
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
@@ -586,40 +586,42 @@ export default function OverviewSection() {
       <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
         <div className="flex items-center justify-between mb-4">
           <div className="section-header">BRENT M1-M12 CALENDAR SPREAD — 3M</div>
-          <div className="flex items-center gap-3">
-            <span className="data-value text-lg font-bold" style={{ color: colors.textPrimary }}>+{m1m12.value.toFixed(2)}</span>
-            <span className="px-2 py-1 rounded-md text-xs font-semibold"
-              style={{ backgroundColor: colors.bullish + '18', color: colors.bullish, fontSize: '11px' }}>
-              BACKWARDATION
-            </span>
-          </div>
+          {brentSpreadVal != null && (
+            <div className="flex items-center gap-3">
+              <span className="data-value text-lg font-bold" style={{ color: colors.textPrimary }}>{brentSpreadVal > 0 ? '+' : ''}{brentSpreadVal.toFixed(2)}</span>
+              <span className="px-2 py-1 rounded-md text-xs font-semibold"
+                style={{ backgroundColor: brentSpreadVal > 0 ? colors.bullish + '18' : colors.bearish + '18', color: brentSpreadVal > 0 ? colors.bullish : colors.bearish, fontSize: '11px' }}>
+                {brentSpreadVal > 0 ? 'BACKWARDATION' : 'CONTANGO'}
+              </span>
+            </div>
+          )}
         </div>
         <div style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={m1m12Chart} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={colors.gridLine} />
-              <XAxis dataKey="date"
-                tick={{ fill: colors.axisText, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}
-                tickLine={false} axisLine={{ stroke: colors.gridLine }} interval="preserveStartEnd" />
-              <YAxis orientation="right" domain={['auto', 'auto']}
-                tick={{ fill: colors.axisText, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}
-                tickLine={false} axisLine={{ stroke: colors.gridLine }} />
-              <Tooltip content={<ChartTooltip colors={colors} />} />
-              <ReferenceLine y={0} stroke={colors.textMuted} strokeDasharray="3 3" />
-              <Area type="monotone" dataKey="std1Upper" stroke="none" fill={colors.textMuted} fillOpacity={0.06} name="+1σ" />
-              <Area type="monotone" dataKey="std1Lower" stroke="none" fill={colors.textMuted} fillOpacity={0.06} name="-1σ" />
-              <Line type="monotone" dataKey="value" stroke={colors.neutral} strokeWidth={2} dot={false} name="M1-M12" />
-              <Line type="monotone" dataKey="ma20" stroke={colors.textMuted} strokeWidth={1} strokeDasharray="4 4" dot={false} name="20D MA" />
-            </ComposedChart>
-          </ResponsiveContainer>
+          {spreadsLoading ? (
+            <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: colors.textMuted }}>Loading chart data...</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={brentSpreadHistory} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.gridLine} />
+                <XAxis dataKey="timestamp"
+                  tickFormatter={(val) => val ? format(new Date(val), 'MMM d') : ''}
+                  tick={{ fill: colors.axisText, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}
+                  tickLine={false} axisLine={{ stroke: colors.gridLine }} interval="preserveStartEnd" />
+                <YAxis orientation="right" domain={['auto', 'auto']}
+                  tick={{ fill: colors.axisText, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}
+                  tickLine={false} axisLine={{ stroke: colors.gridLine }} />
+                <Tooltip content={<ChartTooltip colors={colors} />} />
+                <ReferenceLine y={0} stroke={colors.textMuted} strokeDasharray="3 3" />
+                <Line type="monotone" dataKey="spread" stroke={colors.neutral} strokeWidth={2} dot={false} name="M1-M12" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
         </div>
         <div className="flex items-center gap-6 mt-4 pt-4 border-t" style={{ borderColor: colors.borderSubtle }}>
           {[
-            { label: 'Current', value: `+${m1m12.value.toFixed(2)}` },
-            { label: '20D MA', value: `+${m1m12.ma20.toFixed(2)}` },
-            { label: 'Z-Score', value: `+${m1m12.zScore.toFixed(2)}`, color: colors.neutral },
-            { label: 'Percentile', value: `${m1m12.percentile}%`, color: colors.bullish },
-            { label: 'Day Chg', value: `+${m1m12.dayChange.toFixed(2)}`, color: colors.bullish },
+            { label: 'Current', value: brentSpreadVal != null ? `${brentSpreadVal > 0 ? '+' : ''}${brentSpreadVal.toFixed(2)}` : 'N/A' },
+            { label: 'Z-Score', value: brentSpreadStats.z_score != null ? `${brentSpreadStats.z_score > 0 ? '+' : ''}${brentSpreadStats.z_score.toFixed(2)}` : 'N/A', color: colors.neutral },
+            { label: 'Percentile', value: brentSpreadStats.percentile != null ? `${brentSpreadStats.percentile.toFixed(1)}%` : 'N/A', color: colors.bullish },
           ].map((s) => (
             <div key={s.label}>
               <div style={{ color: colors.textMuted, fontSize: '11px' }}>{s.label}</div>
@@ -630,56 +632,33 @@ export default function OverviewSection() {
       </div>
 
       {/* ═══════════ ROW 3b: EIA + Risks/Catalysts side-by-side ═══════════ */}
-      <div className="grid grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 gap-10">
         {/* EIA compact */}
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="flex items-center justify-between mb-4">
             <div className="section-header">EIA WEEKLY</div>
             <CountdownTimer targetDate={getNextEIARelease()} label="NEXT" />
           </div>
-          <div className="p-4 border mb-4 rounded-lg" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
+          <div className="p-4 border mb-4 rounded-lg max-w-sm" style={{ backgroundColor: colors.overlayBg, borderColor: colors.borderSubtle }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>US Crude</span>
-              <span className="px-2 py-1 rounded-md" style={{ backgroundColor: colors.bullish + '18', color: colors.bullish, fontSize: '10px', fontWeight: 700 }}>BULLISH</span>
+              {invLatest?.crude?.weekChange != null && (
+                <span className="px-2 py-1 rounded-md" style={{ backgroundColor: invLatest.crude.weekChange < 0 ? colors.bullish + '18' : colors.bearish + '18', color: invLatest.crude.weekChange < 0 ? colors.bullish : colors.bearish, fontSize: '10px', fontWeight: 700 }}>
+                  {invLatest.crude.weekChange < 0 ? 'BULLISH' : invLatest.crude.weekChange > 0 ? 'BEARISH' : 'NEUTRAL'}
+                </span>
+              )}
             </div>
-            <div className="data-value text-2xl font-bold" style={{ color: colors.textPrimary }}>430.2 <span style={{ color: colors.textFaint, fontSize: '13px', fontWeight: 400 }}>mn bbl</span></div>
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              {[
-                { l: 'DRAW', v: '-2.4' },
-                { l: 'CONS.', v: '-1.8' },
-                { l: 'SURP.', v: '-0.6' },
-              ].map((x) => (
-                <div key={x.l}>
-                  <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600 }}>{x.l}</div>
-                  <div className="data-value text-sm font-semibold" style={{ color: colors.bullish }}>{x.v}</div>
+            <div className="data-value text-2xl font-bold" style={{ color: colors.textPrimary }}>
+              {invLatest?.crude?.value != null ? invLatest.crude.value.toFixed(1) : 'N/A'} <span style={{ color: colors.textFaint, fontSize: '13px', fontWeight: 400 }}>mn bbl</span>
+            </div>
+            {invLatest?.crude?.weekChange != null && (
+              <div className="mt-3">
+                <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600 }}>{invLatest.crude.weekChange < 0 ? 'DRAW' : 'BUILD'}</div>
+                <div className="data-value text-sm font-semibold" style={{ color: invLatest.crude.weekChange < 0 ? colors.bullish : colors.bearish }}>
+                  {invLatest.crude.weekChange > 0 ? '+' : ''}{invLatest.crude.weekChange}
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="text-sm leading-relaxed" style={{ color: colors.textMuted, lineHeight: '1.5' }}>
-            4th consecutive draw. Cushing −0.8 mn, Gasoline −1.2 mn. Refinery util at 91.2%.
-          </div>
-        </div>
-
-        {/* Risks & Catalysts */}
-        <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
-          <div className="mb-5">
-            <div className="section-header mb-3" style={{ color: colors.bearish }}>KEY RISKS</div>
-            {sentimentAnalysis.risks.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 mb-2">
-                <span style={{ color: colors.bearish, fontSize: '10px', marginTop: '4px' }}>▼</span>
-                <span className="text-sm leading-relaxed" style={{ color: colors.textSecondary, lineHeight: '1.5' }}>{r}</span>
               </div>
-            ))}
-          </div>
-          <div>
-            <div className="section-header mb-3" style={{ color: colors.bullish }}>CATALYSTS</div>
-            {sentimentAnalysis.catalysts.map((c, i) => (
-              <div key={i} className="flex items-start gap-2 mb-2">
-                <span style={{ color: colors.bullish, fontSize: '10px', marginTop: '4px' }}>▲</span>
-                <span className="text-sm leading-relaxed" style={{ color: colors.textSecondary, lineHeight: '1.5' }}>{c}</span>
-              </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -720,26 +699,6 @@ export default function OverviewSection() {
                 <div style={{ color: colors.textMuted, fontSize: '11px' }}>Score: {computedScore}/100</div>
               </div>
             </div>
-          </div>
-
-          <div className="section-header mb-3">BRENT KEY LEVELS</div>
-          <div className="space-y-2">
-            {[
-              { label: 'Resistance 2', val: '$85.00', note: '52-week high' },
-              { label: 'Resistance 1', val: '$83.80', note: 'Swing high' },
-              { label: 'Current', val: '$82.40', note: '', highlight: true },
-              { label: 'Support 1', val: '$80.50', note: '20D EMA' },
-              { label: 'Support 2', val: '$78.00', note: '50D EMA' },
-            ].map((lvl) => (
-              <div key={lvl.label} className="flex items-center justify-between py-1"
-                style={{ borderLeft: lvl.highlight ? `3px solid ${colors.neutral}` : '3px solid transparent', paddingLeft: '10px' }}>
-                <span style={{ color: lvl.highlight ? colors.neutral : colors.textMuted, fontSize: '12px', fontWeight: lvl.highlight ? 600 : 400 }}>{lvl.label}</span>
-                <div className="flex items-center gap-3">
-                  <span className="data-value text-sm font-medium" style={{ color: lvl.highlight ? colors.neutral : colors.textPrimary }}>{lvl.val}</span>
-                  {lvl.note && <span style={{ color: colors.textFaint, fontSize: '10px' }}>{lvl.note}</span>}
-                </div>
-              </div>
-            ))}
           </div>
 
         </div>
