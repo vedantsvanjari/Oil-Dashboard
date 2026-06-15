@@ -7,3 +7,4 @@ from .refineries import RefineryData
 from .calendar_spread import CalendarSpread
 from .crack_spread import CrackSpread
 from .correlation import CorrelationSnapshot
+from .opec_production import OpecProduction

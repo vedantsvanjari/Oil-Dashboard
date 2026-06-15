@@ -277,31 +277,55 @@ export default function OverviewSection() {
         </div>
         <div className="border p-6 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-4">OPEC+ SNAPSHOT</div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>TARGET</div>
-              <div className="data-value text-xl font-bold" style={{ color: colors.textMuted }}>N/A</div>
-            </div>
-            <div>
-              <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>ACTUAL</div>
-              {opecLoading ? (
-                <div style={{ color: colors.textMuted, fontSize: '11px' }}>Loading...</div>
-              ) : opecError ? (
-                <div style={{ color: colors.bearish, fontSize: '11px' }}>Error</div>
-              ) : (
-                <>
-                  <div className="data-value text-xl font-bold" style={{ color: colors.textPrimary }}>
-                    {opecData?.totalProduction?.latest?.toFixed(2) || 'N/A'}
+          {opecLoading ? (
+            <div style={{ color: colors.textMuted, fontSize: '11px' }} className="mb-4">Loading...</div>
+          ) : opecError ? (
+            <div style={{ color: colors.bearish, fontSize: '11px' }} className="mb-4">Error</div>
+          ) : (() => {
+            const hist    = opecData?.totalProduction?.history || [];
+            const latest  = opecData?.totalProduction?.latest;
+            const prevVal = hist.length >= 2 ? hist[hist.length - 2].value : null;
+            const change  = latest != null && prevVal != null
+              ? parseFloat((latest - prevVal).toFixed(2))
+              : null;
+            const changeColor = change == null
+              ? colors.textMuted
+              : change > 0 ? colors.bullish : change < 0 ? colors.bearish : colors.textMuted;
+            // Format "YYYY-MM" → "Jan 2026" inline
+            const prevPeriod = hist.length >= 2 ? hist[hist.length - 2].period : null;
+            const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const prevLabel = prevPeriod
+              ? (() => { const [y,m] = prevPeriod.split('-'); return `${MONTHS[parseInt(m,10)-1]} ${y}`; })()
+              : null;
+            return (
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {/* Latest */}
+                <div>
+                  <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>LATEST</div>
+                  <div className="data-value text-lg font-bold" style={{ color: colors.textPrimary }}>
+                    {latest != null ? latest.toFixed(2) : 'N/A'}
                   </div>
                   <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: colors.borderSubtle }}>
-            <span style={{ color: colors.textMuted, fontSize: '12px' }}>Next Meeting</span>
-            <span className="text-xs" style={{ color: colors.textMuted }}>Data source not implemented</span>
-          </div>
+                </div>
+                {/* Prev Month */}
+                <div>
+                  <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>PREV MONTH</div>
+                  <div className="data-value text-lg font-bold" style={{ color: colors.textSecondary }}>
+                    {prevVal != null ? prevVal.toFixed(2) : 'N/A'}
+                  </div>
+                  <div style={{ color: colors.textMuted, fontSize: '11px' }}>{prevLabel || 'mb/d'}</div>
+                </div>
+                {/* Monthly Change */}
+                <div>
+                  <div style={{ color: colors.textMuted, fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em' }}>MONTHLY CHG</div>
+                  <div className="data-value text-lg font-bold" style={{ color: changeColor }}>
+                    {change != null ? `${change > 0 ? '+' : ''}${change.toFixed(2)}` : 'N/A'}
+                  </div>
+                  <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div className="border p-6 rounded-xl theme-card flex flex-col" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
           <div className="section-header mb-4">MACRO SNAPSHOT</div>
@@ -718,22 +742,6 @@ export default function OverviewSection() {
             ))}
           </div>
 
-          {/* OPEC mini table */}
-          <div className="mt-4 pt-4 border-t" style={{ borderColor: colors.borderSubtle }}>
-            <div className="section-header mb-2">OPEC COMPLIANCE</div>
-            {opecLoading ? (
-              <div className="text-xs" style={{ color: colors.textMuted }}>Loading...</div>
-            ) : opecError ? (
-              <div className="text-xs" style={{ color: colors.bearish }}>Failed to load</div>
-            ) : opecData?.members?.map((m) => (
-              <div key={m.country} className="flex items-center justify-between py-1">
-                <span style={{ color: colors.textSecondary, fontSize: '11px' }}>{m.flag} {m.country}</span>
-                <span className="data-value text-xs" style={{ color: colors.textMuted }}>
-                  N/A
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

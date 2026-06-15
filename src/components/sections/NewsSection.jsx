@@ -9,6 +9,38 @@ import CountdownTimer from '../ui/CountdownTimer';
 import { useTheme } from '../../theme/ThemeContext';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 
+// ── OPEC chart helpers ────────────────────────────────────────────────────
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatOpecMonth(period) {
+  if (!period || typeof period !== 'string') return period || '';
+  const [year, mon] = period.split('-');
+  const idx = parseInt(mon, 10) - 1;
+  return `${MONTH_NAMES[idx] || mon} ${year}`;
+}
+
+function OpecTooltip({ active, payload, colors }) {
+  if (!active || !payload || !payload.length) return null;
+  const { payload: data } = payload[0];
+  return (
+    <div style={{
+      backgroundColor: colors?.tooltipBg || '#1a1d26',
+      borderColor: colors?.tooltipBorder || '#2a2d3a',
+      border: '1px solid',
+      borderRadius: 6,
+      padding: '6px 10px',
+      fontSize: '11px',
+    }}>
+      <div style={{ color: colors?.textMuted || '#9ca3af', marginBottom: 3 }}>
+        {formatOpecMonth(data?.period)}
+      </div>
+      <div style={{ color: colors?.textPrimary || '#e5e7eb', fontWeight: 600 }}>
+        Production: {typeof data?.value === 'number' ? data.value.toFixed(2) : 'N/A'} mb/d
+      </div>
+    </div>
+  );
+}
+
 const categories = ['All', 'OPEC', 'Geopolitics', 'Inventories', 'Tankers', 'Refineries', 'Macro'];
 
 export default function NewsSection() {
@@ -171,48 +203,55 @@ export default function NewsSection() {
           <div className="border p-5 rounded-xl theme-card" style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder }}>
             <div className="section-header mb-4" style={{ fontSize: '14px' }}>OPEC+ TRACKER</div>
 
-            {/* Next meeting */}
-            <div className="flex items-center justify-between mb-4 pb-3 border-b" style={{ borderColor: colors.borderSubtle }}>
-              <span className="text-sm" style={{ color: colors.textSecondary }}>Next Meeting</span>
-              <span className="text-sm" style={{ color: colors.textMuted }}>Data source not implemented</span>
-            </div>
 
-            {/* Production overview */}
-            <div className="grid grid-cols-3 gap-4 mb-5">
-              <div>
-                <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>TARGET</div>
-                <div className="data-value text-lg font-bold" style={{ color: colors.textMuted }}>
-                  N/A
-                </div>
-              </div>
-              <div>
-                <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>ACTUAL</div>
-                {opecLoading ? (
-                  <div className="text-sm" style={{ color: colors.textMuted }}>Loading...</div>
-                ) : opecError ? (
-                  <div className="text-sm" style={{ color: colors.bearish }}>Error</div>
-                ) : (
-                  <>
+
+            {/* Production KPIs: Latest / Prev Month / Monthly Change */}
+            {opecLoading ? (
+              <div className="text-sm mb-5" style={{ color: colors.textMuted }}>Loading...</div>
+            ) : opecError ? (
+              <div className="text-sm mb-5" style={{ color: colors.bearish }}>Error loading data</div>
+            ) : (() => {
+              const hist = opecData?.totalProduction?.history || [];
+              const latest   = opecData?.totalProduction?.latest;
+              const prevVal  = hist.length >= 2 ? hist[hist.length - 2].value : null;
+              const prevMonth = hist.length >= 2 ? formatOpecMonth(hist[hist.length - 2].period) : null;
+              const change   = latest != null && prevVal != null
+                ? parseFloat((latest - prevVal).toFixed(2))
+                : null;
+              const changeColor = change == null
+                ? colors.textMuted
+                : change > 0 ? colors.bullish : change < 0 ? colors.bearish : colors.textMuted;
+              return (
+                <div className="grid grid-cols-3 gap-4 mb-5">
+                  {/* Latest Production */}
+                  <div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>LATEST</div>
                     <div className="data-value text-lg font-bold" style={{ color: colors.textPrimary }}>
-                      {opecData?.totalProduction?.latest?.toFixed(2) || 'N/A'}
+                      {latest != null ? latest.toFixed(2) : 'N/A'}
+                    </div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+                  </div>
+                  {/* Previous Month */}
+                  <div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>PREV MONTH</div>
+                    <div className="data-value text-lg font-bold" style={{ color: colors.textSecondary }}>
+                      {prevVal != null ? prevVal.toFixed(2) : 'N/A'}
                     </div>
                     <div style={{ color: colors.textMuted, fontSize: '11px' }}>
-                      mb/d {opecData?.totalProduction?.trend ? (
-                        <span style={{ color: opecData.totalProduction.trend > 0 ? colors.bullish : colors.bearish }}>
-                          ({opecData.totalProduction.trend > 0 ? '+' : ''}{opecData.totalProduction.trend.toFixed(2)})
-                        </span>
-                      ) : ''}
+                      {prevMonth || 'mb/d'}
                     </div>
-                  </>
-                )}
-              </div>
-              <div>
-                <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>COMPLIANCE</div>
-                <div className="data-value text-lg font-bold" style={{ color: colors.textMuted }}>
-                  N/A
+                  </div>
+                  {/* Monthly Change */}
+                  <div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px', fontWeight: 600 }}>MONTHLY CHG</div>
+                    <div className="data-value text-lg font-bold" style={{ color: changeColor }}>
+                      {change != null ? `${change > 0 ? '+' : ''}${change.toFixed(2)}` : 'N/A'}
+                    </div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px' }}>mb/d</div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Historical Chart */}
             {!opecLoading && !opecError && opecData?.totalProduction?.history && (
@@ -225,11 +264,7 @@ export default function NewsSection() {
                         <stop offset="95%" stopColor={colors.neutral} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, fontSize: '11px' }}
-                      itemStyle={{ color: colors.textPrimary }}
-                      labelStyle={{ color: colors.textMuted }}
-                    />
+                    <Tooltip content={<OpecTooltip colors={colors} />} />
                     <YAxis domain={['auto', 'auto']} hide />
                     <Area type="monotone" dataKey="value" stroke={colors.neutral} fillOpacity={1} fill="url(#colorOpec)" />
                   </AreaChart>
@@ -237,46 +272,6 @@ export default function NewsSection() {
               </div>
             )}
 
-            {/* Member table */}
-            <table className="w-full mb-4" style={{ fontSize: '12px' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                  <th className="text-left py-2 font-medium" style={{ color: colors.textMuted }}>Member</th>
-                  <th className="text-right py-2 font-medium" style={{ color: colors.textMuted }}>Target</th>
-                  <th className="text-right py-2 font-medium" style={{ color: colors.textMuted }}>Actual</th>
-                  <th className="text-right py-2 font-medium" style={{ color: colors.textMuted }}>Cmpl.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {opecLoading ? (
-                  <tr><td colSpan="4" className="py-4 text-center text-sm" style={{ color: colors.textMuted }}>Loading members...</td></tr>
-                ) : opecError ? (
-                  <tr><td colSpan="4" className="py-4 text-center text-sm" style={{ color: colors.bearish }}>Failed to load data</td></tr>
-                ) : opecData?.members?.map((m) => (
-                  <tr key={m.country} style={{ borderBottom: `1px solid ${colors.borderSubtle}` }}>
-                    <td className="py-2" style={{ color: colors.textPrimary }}>
-                      {m.flag} {m.country}
-                    </td>
-                    <td className="text-right data-value py-2" style={{ color: colors.textMuted }}>
-                      N/A
-                    </td>
-                    <td className="text-right data-value py-2" style={{ color: colors.textPrimary }}>
-                      {m.actual.toFixed(2)}
-                    </td>
-                    <td className="text-right py-2 text-xs" style={{ color: colors.textMuted }}>
-                      N/A
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Secretary General statement */}
-            <div className="p-3 border-l-2 rounded-r-lg" style={{ borderColor: colors.neutral, backgroundColor: colors.overlayBg }}>
-              <div className="text-sm italic leading-relaxed" style={{ color: colors.textMuted }}>
-                Data source not implemented
-              </div>
-            </div>
           </div>
 
           {/* Scheduled Releases */}
