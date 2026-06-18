@@ -8,14 +8,27 @@ from app.services.statistical_signal_engine import StatisticalSignalEngine
 
 router = APIRouter()
 
+def _is_missing_table(exc: Exception) -> bool:
+    """True when the exception indicates regime_targets does not exist."""
+    text = str(getattr(exc, "orig", exc)).lower()
+    return "regime_targets" in text or "no such table" in text or "does not exist" in text
+
+
 @router.get("", summary="Get real-time statistical signals")
 def get_statistical_signals(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
-    # Query the latest row from regime_targets
+    # Query the latest row from regime_targets. The table is created by the offline
+    # pipeline (clean_and_target.py); if it has not run yet, return an empty signal
+    # list instead of crashing with a 500.
     query = "SELECT * FROM regime_targets ORDER BY timestamp DESC LIMIT 1"
-    df = pd.read_sql_query(query, db.bind)
-    
+    try:
+        df = pd.read_sql_query(query, db.bind)
+    except Exception as exc:
+        if _is_missing_table(exc):
+            return []
+        raise
+
     if df.empty:
-        raise HTTPException(status_code=404, detail="No data available in regime_targets")
+        return []
         
     row = df.iloc[0]
     

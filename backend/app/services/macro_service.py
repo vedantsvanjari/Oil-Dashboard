@@ -1,10 +1,17 @@
 import logging
-from datetime import datetime
+import threading
+from cachetools import TTLCache
 from sqlalchemy.orm import Session
 import yfinance as yf
 from app.models.macro import MacroData
 
 logger = logging.getLogger(__name__)
+
+# Throttle guard: skip the (slow, blocking) yfinance download if we already synced
+# this period within the TTL window. Keyed by period so /latest (5d) and /history (1y)
+# are throttled independently. The DB read endpoints below remain uncached.
+_FETCH_GUARD = TTLCache(maxsize=8, ttl=300)        # 5 min
+_GUARD_LOCK = threading.Lock()
 
 def fetch_and_store_macro_data(db: Session, period: str = "1y"):
     """
@@ -13,9 +20,18 @@ def fetch_and_store_macro_data(db: Session, period: str = "1y"):
     DXY -> DX-Y.NYB
     US10Y -> ^TNX (10-Year Treasury Yield)
     US2Y -> ^IRX (13-Week Treasury Bill Yield, used as short-term proxy)
+
+    Throttled: returns early if the same period was synced within the TTL window.
     """
+    with _GUARD_LOCK:
+        if _FETCH_GUARD.get(period):
+            logger.debug("Skipping macro sync for period=%s (synced recently)", period)
+            return
+        # Reserve the slot up-front so concurrent requests don't all download.
+        _FETCH_GUARD[period] = True
+
     symbols = ["DX-Y.NYB", "^TNX", "^IRX"]
-    
+
     try:
         # Download data using yfinance
         # period='1y' by default fetches approx 1 year of daily data

@@ -42,20 +42,32 @@ export default function PriceChart() {
   const {
     selectedInstrument, priceTimeRange, setPriceTimeRange, priceIndicators, toggleIndicator,
   } = useDashboardStore();
-  const { instruments, isLoadingHistory, historyError, fetchHistoricalData } = useLivePriceStore();
+  const { instruments, isLoadingHistory, historyError, fetchHistoricalData, fetchIntradayData } = useLivePriceStore();
 
   const instrument = instruments.find((i) => i.id === selectedInstrument) || instruments[0];
 
   useEffect(() => {
     fetchHistoricalData(selectedInstrument);
-  }, [selectedInstrument, fetchHistoricalData]);
+    fetchIntradayData(selectedInstrument);
+  }, [selectedInstrument, fetchHistoricalData, fetchIntradayData]);
 
   const chartData = useMemo(() => {
-    if (priceTimeRange === '1D') {
+    if (!instrument) return [];
+    // 1D and 5D use the dense 15-minute intraday series; longer ranges use dailies.
+    if (priceTimeRange === '1D' || priceTimeRange === '5D') {
       return instrument.intradayData || [];
     }
-    return filterByRange(instrument.dailyData, priceTimeRange);
+    return filterByRange(instrument.dailyData || [], priceTimeRange);
   }, [instrument, priceTimeRange]);
+
+  // Before the first live-prices fetch resolves there are no instruments yet.
+  if (!instrument) {
+    return (
+      <div className="py-12 text-center text-xs" style={{ color: colors.textMuted }}>
+        Connecting to live price feed…
+      </div>
+    );
+  }
 
   const timeRanges = ['1D', '5D', '1M', '3M', '1Y'];
   const indicators = [

@@ -9,5 +9,8 @@ pandas
 numpy
 feedparser
 requests
+scikit-learn
+joblib
+cachetools
 pytest
 httpx

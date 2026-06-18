@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { format, differenceInSeconds } from 'date-fns';
 import { getNextEIARelease } from '../../utils/dates';
 import { useTheme } from '../../theme/ThemeContext';
+import useLivePriceStore from '../../stores/livePriceStore';
 
 export default function StatusBar() {
   const { colors } = useTheme();
+  const isConnected = useLivePriceStore((s) => s.isConnected);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -25,8 +27,11 @@ export default function StatusBar() {
       <div className="flex items-center gap-4">
         <span>Last updated: {format(now, 'HH:mm:ss')} ET</span>
         <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ backgroundColor: colors.bullish }} />
-          WS Connected
+          <span
+            className="w-1.5 h-1.5 rounded-full pulse-dot"
+            style={{ backgroundColor: isConnected ? colors.bullish : colors.bearish }}
+          />
+          {isConnected ? 'API Connected' : 'API Disconnected'}
         </span>
       </div>
       <div className="data-value">

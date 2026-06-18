@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from './theme/ThemeContext';
 import useDashboardStore from './stores/dashboardStore';
+import useLivePriceStore from './stores/livePriceStore';
 import TopBar from './components/layout/TopBar';
 import TickerTape from './components/layout/TickerTape';
 import StatusBar from './components/layout/StatusBar';
@@ -34,6 +35,14 @@ function MainContent() {
 
 export default function App() {
   const { colors } = useTheme();
+  const fetchLivePrices = useLivePriceStore((s) => s.fetchLivePrices);
+
+  // Poll live prices so the instrument list + connection status reflect reality.
+  useEffect(() => {
+    fetchLivePrices();
+    const interval = setInterval(fetchLivePrices, 60000);
+    return () => clearInterval(interval);
+  }, [fetchLivePrices]);
 
   return (
     <div className="flex flex-col min-h-full" style={{ backgroundColor: colors.bgPrimary }}>
