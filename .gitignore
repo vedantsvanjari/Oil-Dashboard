@@ -38,6 +38,30 @@ node_modules/
 # Research
 backend/scratch/
 
+# Research datasets
+LCO_3_year_test.csv
 
+# Local databases
+oil_dashboard.db
+backend/oil_dashboard.db
+
+# Generated replay outputs
+backend/app/models/ml/replay_performance.json
+backend/app/models/ml/replay_trades.json
+
+# Research scripts
+audit_replay.py
+forensic_analysis.py
+reconciliation_audit.py
+test_api.py
+
+# Research outputs
+audit_results.json
+forensic_analysis_results.csv
+reconciliation_results.json
+test_api_results.json
+
+# Local node installation
+node-bin/
 
 
