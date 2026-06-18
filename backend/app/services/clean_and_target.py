@@ -1,15 +1,35 @@
 import os
+import sys
+import argparse
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
+# Resolve project root: backend/app/services/ -> ../../.. -> project root
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def main():
-    print("Loading LCO_data.csv...")
-    csv_path = r"d:\Desktop\Dashboard\data\LCO_data.csv"
+    parser = argparse.ArgumentParser(description="Clean, resample and engineer targets from raw Brent CSV.")
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=PROJECT_ROOT / "LCO_3_year_test.csv",
+        help="Path to the raw Brent CSV file (default: <project_root>/LCO_3_year_test.csv)"
+    )
+    args = parser.parse_args()
+
+    csv_path = args.csv
+    if not csv_path.exists():
+        print(f"ERROR: CSV file not found at: {csv_path}")
+        print("Pass the correct path with:  --csv /path/to/your/data.csv")
+        sys.exit(1)
+
+    print(f"Loading {csv_path.name}...")
     df = pd.read_csv(csv_path, skiprows=1)
     
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -100,32 +120,41 @@ def main():
     print("Engineering Targets...")
     # 1d = 96, 3d = 288, 5d = 480
     
-    df_resampled['fwd_1d_m1_m2_chg'] = df_resampled['m1_m2'].shift(-96) - df_resampled['m1_m2']
-    df_resampled['fwd_3d_m1_m2_chg'] = df_resampled['m1_m2'].shift(-288) - df_resampled['m1_m2']
-    df_resampled['fwd_5d_m1_m2_chg'] = df_resampled['m1_m2'].shift(-480) - df_resampled['m1_m2']
+    features_to_target = [
+        'm1_m2', 'm1_m3', 'm1_m6', 'm1_m12', 'm1_m14',
+        'fly123', 'fly_234', 'fly_345',
+        'front_slope', 'mid_slope', 'long_slope', 'curvature', 'regime_strength'
+    ]
     
-    df_resampled['fwd_1d_fly123_chg'] = df_resampled['fly123'].shift(-96) - df_resampled['fly123']
-    df_resampled['fwd_3d_fly123_chg'] = df_resampled['fly123'].shift(-288) - df_resampled['fly123']
-    df_resampled['fwd_5d_fly123_chg'] = df_resampled['fly123'].shift(-480) - df_resampled['fly123']
+    horizons = {'1d': 96, '3d': 288, '5d': 480}
+    all_targets = []
+    
+    for feat in features_to_target:
+        for h_name, h_shift in horizons.items():
+            target_col = f'fwd_{h_name}_{feat}_chg'
+            df_resampled[target_col] = df_resampled[feat].shift(-h_shift) - df_resampled[feat]
+            all_targets.append(target_col)
     
     print("Generating Predictive Characterization Report...")
     regimes = ['Deep Contango', 'Contango', 'Neutral', 'Backwardation', 'Deep Backwardation']
-    targets = ['fwd_1d_m1_m2_chg', 'fwd_3d_m1_m2_chg', 'fwd_5d_m1_m2_chg', 
-               'fwd_1d_fly123_chg', 'fwd_3d_fly123_chg', 'fwd_5d_fly123_chg']
+    report_targets = ['fwd_1d_m1_m2_chg', 'fwd_3d_m1_m2_chg', 'fwd_5d_m1_m2_chg', 
+                      'fwd_1d_fly123_chg', 'fwd_3d_fly123_chg', 'fwd_5d_fly123_chg']
                
     report_md = "# Phase 2A: Predictive Characterization Report\n\n"
-    report_md += "This report analyzes the forward statistical behavior of the Brent curve across the 5 structural regimes. Targets are calculated using exact 15-min bar shifts (-96, -288, -480) to capture 1-day, 3-day, and 5-day horizon returns.\n\n"
+    report_md += "This report analyzes the forward statistical behavior of the Brent curve across the 5 structural regimes. Statistics are generated STRICTLY on the TRAIN dataset to prevent out-of-sample data leakage.\n\n"
+    
+    report_df = df_resampled[df_resampled['dataset_split'] == 'TRAIN']
     
     for r in regimes:
         report_md += f"## Regime: {r}\n\n"
-        sub_df = df_resampled[df_resampled['regime'] == r]
+        sub_df = report_df[report_df['regime'] == r]
         count = len(sub_df)
         report_md += f"**Observation Count**: {count:,}\n\n"
         
         report_md += "| Target | Mean Change | Median Change | Std Dev | Win Rate (>0) | Sharpe Ratio | T-Statistic |\n"
         report_md += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
         
-        for t in targets:
+        for t in report_targets:
             target_series = sub_df[t].dropna()
             n = len(target_series)
             if n > 0:
@@ -142,10 +171,10 @@ def main():
                 
         report_md += "\n"
         
-    out_path = r"C:\Users\vedan\.gemini\antigravity-ide\brain\30d25179-1a35-4275-97ad-7a5681a3d713\predictive_characterization_report.md"
+    out_path = PROJECT_ROOT / "backend" / "app" / "services" / "predictive_characterization_report.md"
     with open(out_path, 'w') as f:
         f.write(report_md)
-        
+
     print(f"Report saved to {out_path}")
     
     print("Writing engineered dataset to database...")
@@ -160,7 +189,7 @@ def main():
         'm1_m2', 'm1_m3', 'm1_m6', 'm1_m12', 'm1_m14',
         'fly123', 'fly_234', 'fly_345',
         'front_slope', 'mid_slope', 'long_slope', 'curvature'
-    ] + targets
+    ] + all_targets
     df_to_sql = df_to_sql[cols_to_keep]
     
     df_to_sql.to_sql('regime_targets', engine, if_exists='replace', index=False, chunksize=10000)

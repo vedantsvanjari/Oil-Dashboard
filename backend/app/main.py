@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from app.api import prices, news, inventories, refineries, macro, spreads, crack, correlations, opec, sentiment, signals
 from app.api import opec_production as opec_production_api
+from app.api import regimes, statistical_signals, replay
 import app.models  # Ensures all SQLAlchemy models are imported
 from app.models.base import Base
 from app.models.inventories import Inventory
@@ -28,6 +29,9 @@ app.include_router(opec.router, prefix="/api/opec", tags=["opec"])
 app.include_router(opec_production_api.router, prefix="/api/opec", tags=["opec-production"])
 app.include_router(sentiment.router, prefix="/api/sentiment", tags=["sentiment"])
 app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
+app.include_router(regimes.router, prefix="/api/regimes", tags=["regimes"])
+app.include_router(statistical_signals.router, prefix="/api/signals/statistical", tags=["statistical-signals"])
+app.include_router(replay.router, prefix="/api/replay", tags=["replay"])
 
 @app.get("/health")
 def health_check():

@@ -1,18 +1,36 @@
 import os
+import sys
+import argparse
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-from dotenv import load_dotenv
+
+# Resolve project root: backend/app/services/ -> ../../.. -> project root
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 # Load env
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def main():
-    print("Loading LCO_data.csv...")
-    csv_path = r"d:\Desktop\Dashboard\data\LCO_data.csv"
-    
+    parser = argparse.ArgumentParser(description="Run the Brent regime classification pipeline.")
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=PROJECT_ROOT / "LCO_3_year_test.csv",
+        help="Path to the raw Brent CSV file (default: <project_root>/LCO_3_year_test.csv)"
+    )
+    args = parser.parse_args()
+
+    csv_path = args.csv
+    if not csv_path.exists():
+        print(f"ERROR: CSV file not found at: {csv_path}")
+        print("Pass the correct path with:  --csv /path/to/your/data.csv")
+        sys.exit(1)
+
+    print(f"Loading {csv_path.name}...")
     # We skip the first row because it contains metadata "#meta:1min||contract_num||field"
     df = pd.read_csv(csv_path, skiprows=1)
     

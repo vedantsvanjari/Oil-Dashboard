@@ -821,4 +821,57 @@ export const navTabs = [
   { id: 'spreads', label: 'SPREADS' },
   { id: 'physical', label: 'PHYSICAL' },
   { id: 'news', label: 'NEWS' },
+  { id: 'regimeIntelligence', label: 'REGIME INTEL' },
+];
+
+// ─── REGIME INTELLIGENCE (PHASE 2B MOCK DATA) ──────────────
+export const mockRegimeIntelligenceState = {
+  currentRegime: 'Deep Backwardation',
+  regimeScore: 88.5,
+  confidence: 84,
+  lastUpdated: '2026-06-18 15:30',
+};
+
+export const mockRegimeScores = [
+  { name: 'Inventory Score', score: 85, direction: 'up', contribution: '+12%' },
+  { name: 'News Score', score: 72, direction: 'up', contribution: '+5%' },
+  { name: 'OPEC Score', score: 90, direction: 'neutral', contribution: '+15%' },
+  { name: 'Curve Structure Score', score: 95, direction: 'up', contribution: '+25%' },
+  { name: 'Spread Strength Score', score: 88, direction: 'up', contribution: '+18%' },
+];
+
+export const mockMarketState = [
+  { instrument: 'M1-M2', value: 0.85, percentile: 92, classification: 'Extremely Rich' },
+  { instrument: 'M1-M6', value: 3.45, percentile: 88, classification: 'Rich' },
+  { instrument: 'M1-M12', value: 5.20, percentile: 82, classification: 'Rich' },
+  { instrument: 'Fly123', value: -0.15, percentile: 12, classification: 'Extremely Cheap' },
+  { instrument: 'Fly234', value: -0.08, percentile: 35, classification: 'Cheap' },
+  { instrument: 'Fly345', value: 0.02, percentile: 55, classification: 'Fair Value' },
+];
+
+export const mockSignalMonitor = [
+  { instrument: 'Fly123', horizon: '5D', drift: 'Bullish', rv: 'Extremely Cheap', confidence: 88, recommendation: 'Strong Buy' },
+  { instrument: 'M1-M2', horizon: '1D', drift: 'Neutral', rv: 'Extremely Rich', confidence: 82, recommendation: 'Sell' },
+  { instrument: 'M1-M6', horizon: '3D', drift: 'Bullish', rv: 'Rich', confidence: 65, recommendation: 'Neutral' },
+  { instrument: 'Fly234', horizon: '5D', drift: 'Bullish', rv: 'Cheap', confidence: 72, recommendation: 'Buy' },
+  { instrument: 'M1-M12', horizon: '5D', drift: 'Bullish', rv: 'Rich', confidence: 91, recommendation: 'Strong Sell' },
+];
+
+export const mockRegimeStats = {
+  bestStructure: 'Fly123',
+  bestHorizon: '5 Day',
+  historicalWinRate: '74%',
+  historicalMedianReturn: '0.45',
+  economicEdgeScore: 82.4,
+};
+
+export const mockRegimeHistory = [
+  { date: '2026-05-01', regime: 'Neutral', regimeIndex: 2 },
+  { date: '2026-05-05', regime: 'Backwardation', regimeIndex: 3 },
+  { date: '2026-05-15', regime: 'Backwardation', regimeIndex: 3 },
+  { date: '2026-05-20', regime: 'Deep Backwardation', regimeIndex: 4 },
+  { date: '2026-06-01', regime: 'Deep Backwardation', regimeIndex: 4 },
+  { date: '2026-06-10', regime: 'Backwardation', regimeIndex: 3 },
+  { date: '2026-06-15', regime: 'Deep Backwardation', regimeIndex: 4 },
+  { date: '2026-06-18', regime: 'Deep Backwardation', regimeIndex: 4 },
 ];

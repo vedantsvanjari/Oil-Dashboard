@@ -9,6 +9,7 @@ import PricesSection from './components/sections/PricesSection';
 import SpreadsSection from './components/sections/SpreadsSection';
 import PhysicalSection from './components/sections/PhysicalSection';
 import NewsSection from './components/sections/NewsSection';
+import RegimeIntelligenceSection from './components/sections/RegimeIntelligenceSection';
 
 function MainContent() {
   const activeTab = useDashboardStore((s) => s.activeTab);
@@ -24,6 +25,8 @@ function MainContent() {
       return <PhysicalSection />;
     case 'news':
       return <NewsSection />;
+    case 'regimeIntelligence':
+      return <RegimeIntelligenceSection />;
     default:
       return <OverviewSection />;
   }
